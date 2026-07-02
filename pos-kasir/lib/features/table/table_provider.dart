@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/table_model.dart';
+import '../../models/table_model.dart';
 import 'repositories/table_repository.dart';
 
 final tableRepositoryProvider = Provider<TableRepository>((ref) {

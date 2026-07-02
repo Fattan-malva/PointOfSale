@@ -1,5 +1,5 @@
-import '../core/network/api_client.dart';
-import '../models/payment_model.dart';
+import '../../../core/network/api_client.dart';
+import '../../../models/payment_model.dart';
 
 class PaymentRepository {
   final _api = ApiClient();

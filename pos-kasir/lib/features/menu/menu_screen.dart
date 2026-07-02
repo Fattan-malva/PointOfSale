@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
+import '../../core/constants/app_shadows.dart';
 import '../../core/constants/app_typography.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
@@ -45,7 +46,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
         // Search bar
         Padding(
           padding: const EdgeInsets.all(AppSpacing.space4),
-          child: AppTextField(
+            child: AppTextField(
+            label: 'Cari',
             controller: _searchController,
             hintText: 'Cari menu...',
             prefixIcon: Icons.search,
@@ -130,7 +132,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorView(
               message: e.toString(),
-              onRetry: () => ref.invalidate(itemsProvider),
+              onRetry: () => ref.invalidate(filteredItemsProvider),
             ),
           ),
         ),

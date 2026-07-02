@@ -1,6 +1,6 @@
-import '../core/network/api_client.dart';
-import '../models/category_model.dart';
-import '../models/item_model.dart';
+import '../../../core/network/api_client.dart';
+import '../../../models/category_model.dart';
+import '../../../models/item_model.dart';
 
 class MenuRepository {
   final _api = ApiClient();

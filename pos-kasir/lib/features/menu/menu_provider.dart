@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/category_model.dart';
-import '../models/item_model.dart';
+import '../../models/category_model.dart';
+import '../../models/item_model.dart';
 import 'repositories/menu_repository.dart';
 
 final menuRepositoryProvider = Provider<MenuRepository>((ref) {

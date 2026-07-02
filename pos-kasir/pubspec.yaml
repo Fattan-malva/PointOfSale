@@ -32,6 +32,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  intl: ^0.18.1
+  cached_network_image: ^3.3.0
   
   # Network & HTTP
   dio: ^5.4.0

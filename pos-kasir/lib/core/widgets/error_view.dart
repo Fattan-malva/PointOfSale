@@ -9,6 +9,8 @@ class ErrorView extends StatelessWidget {
   final String? subtitle;
   final String? buttonLabel;
   final VoidCallback? onButtonPressed;
+  final String? message;
+  final VoidCallback? onRetry;
 
   const ErrorView({
     super.key,
@@ -16,6 +18,8 @@ class ErrorView extends StatelessWidget {
     this.subtitle,
     this.buttonLabel = 'Coba Lagi',
     this.onButtonPressed,
+    this.message,
+    this.onRetry,
   });
 
   @override
@@ -27,10 +31,10 @@ class ErrorView extends StatelessWidget {
           Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: AppSpacing.space4),
           Text(title, style: AppTypography.title, textAlign: TextAlign.center),
-          if (subtitle != null) ...[
+          if (subtitle != null || message != null) ...[
             const SizedBox(height: AppSpacing.space2),
             Text(
-              subtitle!,
+              subtitle ?? message!,
               style: AppTypography.body.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -40,7 +44,7 @@ class ErrorView extends StatelessWidget {
           if (buttonLabel != null) ...[
             const SizedBox(height: AppSpacing.space6),
             ElevatedButton(
-              onPressed: onButtonPressed,
+              onPressed: onButtonPressed ?? onRetry,
               child: Text(buttonLabel!),
             ),
           ],

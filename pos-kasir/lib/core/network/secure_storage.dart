@@ -10,7 +10,7 @@ class SecureStorageService {
     ),
     iOptions: IOSOptions(
       accessibility:
-          KeychainAccessibility.first_available_when_unlocked_this_device_only,
+          KeychainAccessibility.first_unlock,
     ),
   );
 

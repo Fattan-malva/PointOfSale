@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../auth/auth_provider.dart';
-import '../models/order_model.dart';
+import '../../models/order_model.dart';
 import 'repositories/order_repository.dart';
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {

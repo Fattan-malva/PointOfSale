@@ -71,7 +71,7 @@ class _OrderHistoryCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              StatusBadge(status: order.status),
+              StatusBadge(label: order.status.toString(), status: AppBadgeStatus.info),
             ],
           ),
           const SizedBox(height: AppSpacing.space2),

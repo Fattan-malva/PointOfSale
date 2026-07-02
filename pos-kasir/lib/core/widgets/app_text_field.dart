@@ -15,13 +15,13 @@ class AppTextField extends StatefulWidget {
   final int? maxLength;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
-  final Widget? prefixIcon;
-  final Widget? suffixIcon;
+  final Object? prefixIcon;
+  final Object? suffixIcon;
   final bool enabled;
 
   const AppTextField({
     super.key,
-    required this.label,
+    this.label = '',
     this.hintText,
     this.controller,
     this.keyboardType = TextInputType.text,
@@ -70,8 +70,12 @@ class _AppTextFieldState extends State<AppTextField> {
       decoration: InputDecoration(
         label: Text(widget.label),
         hintText: widget.hintText,
-        prefixIcon: widget.prefixIcon,
-        suffixIcon: widget.suffixIcon,
+        prefixIcon: widget.prefixIcon is IconData
+            ? Icon(widget.prefixIcon as IconData)
+            : widget.prefixIcon as Widget?,
+        suffixIcon: widget.suffixIcon is IconData
+            ? Icon(widget.suffixIcon as IconData)
+            : widget.suffixIcon as Widget?,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: const BorderSide(color: AppColors.border),

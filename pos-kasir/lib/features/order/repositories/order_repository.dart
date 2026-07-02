@@ -1,5 +1,5 @@
-import '../core/network/api_client.dart';
-import '../models/order_model.dart';
+import '../../../core/network/api_client.dart';
+import '../../../models/order_model.dart';
 
 class OrderRepository {
   final _api = ApiClient();

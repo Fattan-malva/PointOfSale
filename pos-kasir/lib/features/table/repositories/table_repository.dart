@@ -1,5 +1,5 @@
-import '../core/network/api_client.dart';
-import '../models/table_model.dart';
+import '../../../core/network/api_client.dart';
+import '../../../models/table_model.dart';
 
 class TableRepository {
   final _api = ApiClient();

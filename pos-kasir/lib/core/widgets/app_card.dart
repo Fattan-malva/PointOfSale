@@ -12,6 +12,7 @@ class AppCard extends StatelessWidget {
   final BoxShadow? shadow;
   final VoidCallback? onTap;
   final Border? border;
+  final EdgeInsetsGeometry? margin;
 
   const AppCard({
     super.key,
@@ -22,6 +23,7 @@ class AppCard extends StatelessWidget {
     this.shadow,
     this.onTap,
     this.border,
+    this.margin,
   });
 
   @override
@@ -33,6 +35,7 @@ class AppCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        margin: margin,
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(effectiveRadius),
