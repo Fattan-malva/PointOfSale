@@ -1,0 +1,189 @@
+# =========================
+# OS Generated Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# =========================
+# IDE & Editors
+# =========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+
+# =========================
+# Logs & Temp
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+tmp/
+temp/
+.cache/
+
+# =========================
+# Node.js (Backend)
+# =========================
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+package-lock.json
+yarn-debug.log*
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+
+# =========================
+# Flutter / Dart
+# =========================
+# Flutter/Dart/Pub related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+.packages
+.metadata
+pubspec.lock
+build/
+.flutter-versions
+
+# Flutter build artifacts
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app
+*.xcarchive
+*.xcuserdata
+*.xcworkspace
+!default.xcworkspace
+xcuserdata/
+
+# Flutter web
+lib/generated_plugin_registrant.dart
+
+# Flutter test coverage
+coverage/
+.test_coverage.dart
+
+# Flutter generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# =========================
+# Backend Specific
+# =========================
+backend/node_modules/
+backend/.env
+backend/.env.local
+backend/dist/
+backend/coverage/
+backend/.nyc_output/
+
+# =========================
+# Database
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+*.sql.bak
+
+# =========================
+# Build & Dist
+# =========================
+dist/
+out/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+*.temp
+
+# =========================
+# Documentation
+# =========================
+# Keep markdown files but ignore generated docs
+docs/_build/
+site/
+
+# =========================
+# Test & Coverage
+# =========================
+coverage/
+.nyc_output/
+test-results/
+*.lcov
+
+# =========================
+# Platform Specific
+# =========================
+# Windows
+*.stackdump
+[Dd]esktop.ini
+
+# macOS
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =========================
+# Project Specific
+# =========================
+# Keep SETUP.md files
+!**/SETUP.md
+
+# Ignore all .env but keep .env.example
+.env
+!.env.example
