@@ -10,7 +10,6 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/empty_view.dart';
 import '../../core/widgets/error_view.dart';
-import '../../core/widgets/loading_overlay.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/responsive.dart';
 import '../../models/item_model.dart';
@@ -39,7 +38,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final itemsAsync = ref.watch(filteredItemsProvider);
     final orderState = ref.watch(currentOrderProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
-    final searchQuery = ref.watch(menuSearchQueryProvider);
 
     return Column(
       children: [

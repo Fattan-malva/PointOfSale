@@ -1,5 +1,4 @@
 import '../../core/network/api_client.dart';
-import '../../core/network/api_exception.dart';
 import '../../models/user_model.dart';
 
 class AuthRepository {
