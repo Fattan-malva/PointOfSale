@@ -92,7 +92,7 @@ class AuthRepository {
       }
 
       final response = await _apiClient.post(
-        '/auth/user/refresh',
+        '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
 

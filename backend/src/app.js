@@ -69,9 +69,10 @@ app.decorate('authenticate', async function (request, reply) {
     throw { statusCode: 401, message: 'AccountSuspended' };
   }
 });
+app.authenticate._authType = 'authenticate';
 
 app.decorate('checkPermission', function (requiredPermissions = []) {
-  return async (request, reply) => {
+  const handler = async (request, reply) => {
     try {
       await request.jwtVerify();
     } catch (err) {
@@ -108,6 +109,9 @@ app.decorate('checkPermission', function (requiredPermissions = []) {
       throw { statusCode: 403, message: 'Forbidden: Insufficient permissions' };
     }
   };
+  handler._authType = 'permission';
+  handler._permissions = requiredPermissions;
+  return handler;
 });
 
 app.decorate('generateToken', function (user, type = 'user') {
@@ -131,6 +135,44 @@ app.decorate('generateRefreshToken', async function (userId, userType = 'Employe
     ExpiresAt: expiresAt,
   });
   return token;
+});
+
+// ==================== Route Registry (auto-detect all API routes) ====================
+const routeInfo = new Map();
+app.decorate('routeInfo', routeInfo);
+
+app.addHook('onRoute', (routeOptions) => {
+  const method = Array.isArray(routeOptions.method) ? routeOptions.method.join(',') : routeOptions.method;
+  const prefix = routeOptions.prefix || '';
+  const url = prefix + (routeOptions.url || '');
+
+  let authType = routeOptions.config?.auth || null;
+  let permissions = [];
+
+  if (!authType) {
+    const handlers = routeOptions.preHandler || [];
+    const arr = Array.isArray(handlers) ? handlers : [handlers];
+    for (const h of arr) {
+      if (typeof h === 'function') {
+        if (h._authType === 'authenticate') {
+          authType = 'authenticate';
+        } else if (h._authType === 'permission') {
+          authType = 'permission';
+          permissions = h._permissions || [];
+        }
+      }
+    }
+  }
+
+  if (!authType && url.includes('/customers/me/')) {
+    authType = 'authenticate';
+  }
+
+  if (!authType) {
+    authType = 'public';
+  }
+
+  routeInfo.set(method + ' ' + url, { method, url, authType, permissions });
 });
 
 app.post('/api/auth/refresh', async (request, reply) => {
@@ -208,5 +250,17 @@ app.register(crmRoutes, { prefix: '/api' });
 app.register(promotionRoutes, { prefix: '/api' });
 app.register(systemRoutes, { prefix: '/api' });
 app.register(reportingRoutes, { prefix: '/api' });
+
+// ==================== Route List Endpoint ====================
+app.get('/api/system/routes', {
+  preHandler: [app.checkPermission([])],
+  handler: async (request, reply) => {
+    const routes = [];
+    for (const [, info] of routeInfo) {
+      routes.push(info);
+    }
+    return { data: routes };
+  },
+});
 
 module.exports = app;

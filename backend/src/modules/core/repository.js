@@ -110,7 +110,12 @@ class CoreRepository {
   }
 
   async findUserByUsername(username) {
-    return db('MstUser').where('Username', username).first();
+    return db('MstUser')
+      .join('Branch', 'MstUser.BranchID', 'Branch.BranchID')
+      .join('MstRole', 'MstUser.RoleID', 'MstRole.RoleID')
+      .where('MstUser.Username', username)
+      .select('MstUser.*', 'Branch.BranchName', 'MstRole.RoleName')
+      .first();
   }
 
   async createUser(data) {

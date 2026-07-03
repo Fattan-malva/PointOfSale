@@ -102,7 +102,7 @@ class ApiClient {
       );
 
       final response = await tempDio.post(
-        '/auth/user/refresh',
+        '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
 
