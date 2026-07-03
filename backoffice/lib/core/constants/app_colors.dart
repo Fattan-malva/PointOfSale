@@ -21,6 +21,8 @@ class AppColors {
 
   // Semantik
   static const Color success = Color(0xFF1E9E5A);
+  static const Color info = Color(0xFF0284C7);
+  static const Color infoSoft = Color(0xFFE5F4FF);
   static const Color successSoft = Color(0xFFE7F7EE);
   static const Color warning = Color(0xFFC77700);
   static const Color warningSoft = Color(0xFFFDF1DF);

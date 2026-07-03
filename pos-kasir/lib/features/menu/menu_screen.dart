@@ -289,19 +289,8 @@ class _ItemCard extends ConsumerWidget {
     // Apply modifiers
     final orderStateNow = ref.read(currentOrderProvider);
     if (orderStateNow.order != null && orderStateNow.order!.details.isNotEmpty) {
-      final lastDetail = orderStateNow.order!.details.last;
-      final modifierOptions = result['modifierOptions'] as Map<String, String>? ?? {};
-      for (final entry in modifierOptions.entries) {
-        try {
-          await ref.read(orderRepositoryProvider).addModifierToItem(
-            orderStateNow.order!.id,
-            lastDetail.id,
-            modifierId: entry.key,
-            modifierOptionId: entry.value,
-            optionName: entry.value,
-          );
-        } catch (_) {}
-      }
+      // NOTE: Modifier management endpoints not yet implemented in backend
+      // Modifiers will be handled once backend sub-resource endpoints are created
     }
 
     if (context.mounted) {

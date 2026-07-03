@@ -101,7 +101,7 @@ class AppTheme {
         labelSmall: AppTypography.caption,
       ),
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surfaceRaised,
         elevation: 0,
         shape: RoundedRectangleBorder(

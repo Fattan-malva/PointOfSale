@@ -68,4 +68,36 @@ class AppTypography {
     letterSpacing: 0,
     fontFeatures: [FontFeature.tabularFigures()],
   );
+
+  // H1: 24-28sp, Bold
+  static const TextStyle h1 = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    height: 1.2,
+    letterSpacing: -0.5,
+  );
+
+  // H2: 20-22sp, SemiBold
+  static const TextStyle h2 = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: -0.3,
+  );
+
+  // H3: 18sp, SemiBold
+  static const TextStyle h3 = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: -0.2,
+  );
+
+  // H4: 16sp, SemiBold
+  static const TextStyle h4 = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: 0,
+  );
 }

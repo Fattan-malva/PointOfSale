@@ -7,6 +7,7 @@ class ErrorMapper {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.sendTimeout:
+      case DioExceptionType.transformTimeout:
         return TimeoutException(
           originalException: error,
           stackTrace: error.stackTrace,

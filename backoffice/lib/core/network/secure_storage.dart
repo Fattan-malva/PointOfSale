@@ -2,16 +2,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../storage/storage_keys.dart';
 
 class SecureStorageService {
-  static const _storage = FlutterSecureStorage(
+  static final _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(
       keyCipherAlgorithm:
           KeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
       storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
     ),
-    iOptions: IOSOptions(
-      accessibility:
-          KeychainAccessibility.first_available_when_unlocked_this_device_only,
-    ),
+    iOptions: IOSOptions(),
   );
 
   Future<void> saveAccessToken(String token) async {

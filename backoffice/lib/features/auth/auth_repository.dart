@@ -1,7 +1,6 @@
-import 'package:dio/dio.dart';
-import '../models/user_model.dart';
-import 'api_client.dart';
-import 'api_exception.dart';
+import '../../models/user_model.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 
 class AuthRepository {
   final _apiClient = ApiClient();
@@ -13,21 +12,22 @@ class AuthRepository {
     try {
       final response = await _apiClient.post(
         '/auth/user/login',
-        data: {'email': email, 'password': password},
+        data: {'Username': email, 'Password': password},
       );
 
-      final data = response.data as Map<String, dynamic>;
+      // Parse response: { data: { accessToken, refreshToken, user: {...} } }
+      final data = response.data['data'] as Map<String, dynamic>;
       final accessToken = data['accessToken'] as String?;
       final refreshToken = data['refreshToken'] as String?;
-      final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      final userData = data['user'] as Map<String, dynamic>;
+      final user = UserModel.fromJson(userData);
 
-      if (accessToken != null) {
-        await _apiClient.secureStorage.saveAccessToken(accessToken);
-      }
-      if (refreshToken != null) {
-        await _apiClient.secureStorage.saveRefreshToken(refreshToken);
+      if (accessToken == null || refreshToken == null) {
+        throw ApiException(message: 'Invalid login response: missing tokens');
       }
 
+      await _apiClient.secureStorage.saveAccessToken(accessToken);
+      await _apiClient.secureStorage.saveRefreshToken(refreshToken);
       await _apiClient.secureStorage.saveUserId(user.id);
       await _apiClient.secureStorage.saveUserEmail(user.email);
       await _apiClient.secureStorage.saveUserName(user.name);
@@ -37,10 +37,10 @@ class AuthRepository {
       }
 
       return user;
-    } on ApiException {
-      rethrow;
+    } on ApiException catch (e) {
+      throw ApiException(message: 'Login failed: ${e.message}');
     } catch (e) {
-      throw ApiException(message: 'Login failed: $e', originalException: e);
+      throw ApiException(message: 'Login failed: $e');
     }
   }
 

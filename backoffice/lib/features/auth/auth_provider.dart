@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_model.dart';
 import 'auth_repository.dart';
-import '../network/api_exception.dart';
+import '../../core/network/api_exception.dart';
 
 class AuthState {
   final bool isLoading;

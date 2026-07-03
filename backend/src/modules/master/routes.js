@@ -349,7 +349,7 @@ async function masterRoutes(fastify, opts) {
   });
 
   fastify.get('/tables', {
-    preHandler: [fastify.checkPermission(['CanManageTable'])],
+    preHandler: [fastify.checkPermission(['CanManageTable', 'CanViewTable'])],
     handler: async (request, reply) => {
       return { data: await service.getAllTable() };
     },
@@ -357,7 +357,7 @@ async function masterRoutes(fastify, opts) {
 
   fastify.get('/tables/:id', {
     schema: { params: idParam },
-    preHandler: [fastify.checkPermission(['CanManageTable'])],
+    preHandler: [fastify.checkPermission(['CanManageTable', 'CanViewTable'])],
     handler: async (request, reply) => {
       return { data: await service.getTableById(request.params.id) };
     },

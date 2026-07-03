@@ -35,6 +35,7 @@ const P_MANAGE_ITEM = uuidv7();
 const P_MANAGE_MODIFIER = uuidv7();
 const P_MANAGE_PACKAGE = uuidv7();
 const P_MANAGE_TABLE = uuidv7();
+const P_VIEW_TABLE = uuidv7();
 const P_MANAGE_TAX = uuidv7();
 const P_MANAGE_DISCOUNT = uuidv7();
 const P_MANAGE_VOUCHER = uuidv7();
@@ -84,6 +85,7 @@ exports.seed = async (knex) => {
       { PermissionID: P_MANAGE_MODIFIER, PermissionName: 'CanManageModifier' },
       { PermissionID: P_MANAGE_PACKAGE, PermissionName: 'CanManagePackage' },
       { PermissionID: P_MANAGE_TABLE, PermissionName: 'CanManageTable' },
+      { PermissionID: P_VIEW_TABLE, PermissionName: 'CanViewTable' },
       { PermissionID: P_MANAGE_TAX, PermissionName: 'CanManageTax' },
       { PermissionID: P_MANAGE_DISCOUNT, PermissionName: 'CanManageDiscount' },
       { PermissionID: P_MANAGE_VOUCHER, PermissionName: 'CanManageVoucher' },
@@ -118,6 +120,7 @@ exports.seed = async (knex) => {
       { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_MANAGE_MODIFIER },
       { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_MANAGE_PACKAGE },
       { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_MANAGE_TABLE },
+      { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_VIEW_TABLE },
       { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_MANAGE_TAX },
       { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_MANAGE_DISCOUNT },
       { RolePermissionID: uuidv7(), RoleID: R_ADMIN, PermissionID: P_MANAGE_VOUCHER },
@@ -149,6 +152,7 @@ exports.seed = async (knex) => {
       { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_MANAGE_MODIFIER },
       { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_MANAGE_PACKAGE },
       { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_MANAGE_TABLE },
+      { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_VIEW_TABLE },
       { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_MANAGE_TAX },
       { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_MANAGE_DISCOUNT },
       { RolePermissionID: uuidv7(), RoleID: R_OWNER, PermissionID: P_MANAGE_VOUCHER },
@@ -176,6 +180,8 @@ exports.seed = async (knex) => {
       { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_MODIFIER },
       { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_PACKAGE },
       { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_TABLE },
+      { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_VIEW_TABLE },
+      { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_TAX },
       { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_DISCOUNT },
       { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_VOUCHER },
       { RolePermissionID: uuidv7(), RoleID: R_MANAGER, PermissionID: P_MANAGE_SHIFT },
@@ -188,9 +194,11 @@ exports.seed = async (knex) => {
       { RolePermissionID: uuidv7(), RoleID: R_CASHIER, PermissionID: P_CREATE_ORDER },
       { RolePermissionID: uuidv7(), RoleID: R_CASHIER, PermissionID: P_CANCEL_ORDER },
       { RolePermissionID: uuidv7(), RoleID: R_CASHIER, PermissionID: P_VIEW_ORDER },
+      { RolePermissionID: uuidv7(), RoleID: R_CASHIER, PermissionID: P_VIEW_TABLE },
       { RolePermissionID: uuidv7(), RoleID: R_CASHIER, PermissionID: P_MANAGE_PAYMENT },
       { RolePermissionID: uuidv7(), RoleID: R_KITCHEN, PermissionID: P_CREATE_ORDER },
       { RolePermissionID: uuidv7(), RoleID: R_KITCHEN, PermissionID: P_VIEW_ORDER },
+      { RolePermissionID: uuidv7(), RoleID: R_KITCHEN, PermissionID: P_VIEW_TABLE },
       { RolePermissionID: uuidv7(), RoleID: R_CUSTOMER, PermissionID: P_CREATE_ORDER },
     ]);
 

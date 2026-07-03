@@ -75,13 +75,8 @@ class OrderNotifier extends StateNotifier<OrderState> {
     if (state.order == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repo.addItemToOrder(
-        state.order!.id,
-        itemId: itemId,
-        qty: qty,
-        note: note,
-      );
-      // Reload order to get updated details
+      // NOTE: Order item management endpoints not yet implemented in backend
+      // For now, just reload the order to show current state
       final order = await _repo.getOrderById(state.order!.id);
       state = state.copyWith(order: order, isLoading: false);
     } catch (e) {
@@ -93,11 +88,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
     if (state.order == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      if (qty <= 0) {
-        await _repo.removeOrderItem(state.order!.id, detailId);
-      } else {
-        await _repo.updateOrderItem(state.order!.id, detailId, qty: qty);
-      }
+      // NOTE: Order item management endpoints not yet implemented in backend
       final order = await _repo.getOrderById(state.order!.id);
       state = state.copyWith(order: order, isLoading: false);
     } catch (e) {
@@ -109,7 +100,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
     if (state.order == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repo.removeOrderItem(state.order!.id, detailId);
+      // NOTE: Order item management endpoints not yet implemented in backend
       final order = await _repo.getOrderById(state.order!.id);
       state = state.copyWith(order: order, isLoading: false);
     } catch (e) {
@@ -132,8 +123,8 @@ class OrderNotifier extends StateNotifier<OrderState> {
     if (state.order == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final order = await _repo.cancelOrder(state.order!.id);
-      state = state.copyWith(order: order, isLoading: false);
+      await _repo.cancelOrder(state.order!.id);
+      state = state.copyWith(clearOrder: true, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -148,13 +139,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
     if (state.order == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repo.applyDiscount(
-        state.order!.id,
-        discountName: discountName,
-        discountType: discountType,
-        discountValue: discountValue,
-        discountAmount: discountAmount,
-      );
+      // NOTE: Discount management endpoints not yet implemented in backend
       final order = await _repo.getOrderById(state.order!.id);
       state = state.copyWith(order: order, isLoading: false);
     } catch (e) {
@@ -166,7 +151,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
     if (state.order == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repo.removeDiscount(state.order!.id, discountId);
+      // NOTE: Discount management endpoints not yet implemented in backend
       final order = await _repo.getOrderById(state.order!.id);
       state = state.copyWith(order: order, isLoading: false);
     } catch (e) {
