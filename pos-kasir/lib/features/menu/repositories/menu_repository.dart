@@ -1,6 +1,7 @@
 import '../../../core/network/api_client.dart';
 import '../../../models/category_model.dart';
 import '../../../models/item_model.dart';
+import '../../../models/modifier_model.dart';
 
 class MenuRepository {
   final _api = ApiClient();
@@ -28,5 +29,11 @@ class MenuRepository {
   Future<ItemModel> getItemById(String id) async {
     final response = await _api.get('/master/items/$id');
     return ItemModel.fromJson(response.data['data']);
+  }
+
+  Future<List<ModifierModel>> getItemModifiers(String itemId) async {
+    final response = await _api.get('/master/items/$itemId/modifiers');
+    final data = response.data['data'] as List<dynamic>;
+    return data.map((json) => ModifierModel.fromJson(json)).toList();
   }
 }

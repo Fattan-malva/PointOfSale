@@ -1,3 +1,5 @@
+import 'modifier_model.dart';
+
 class ItemModel {
   final String id;
   final String? categoryId;
@@ -44,6 +46,8 @@ class ItemModel {
           [],
     );
   }
+
+  List<ModifierModel> get modifiers => [];
 
   String? get imageUrl {
     if (media.isNotEmpty) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_shadows.dart';
@@ -8,6 +9,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/empty_view.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../routes/app_router.dart';
 import '../order/order_provider.dart';
 
 class OrderScreen extends ConsumerWidget {
@@ -303,6 +305,27 @@ class _OrderSummary extends ConsumerWidget {
               value: '-${CurrencyFormatter.format(order.discountAmount)}',
               valueColor: AppColors.success,
             ),
+            if (order.discounts.isNotEmpty)
+              ...order.discounts.map<Widget>((d) => Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.space1),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '  ${d.discountName}',
+                        style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      color: AppColors.error,
+                      onPressed: () => ref.read(currentOrderProvider.notifier).removeDiscount(d.id),
+                    ),
+                  ],
+                ),
+              )),
           ],
           const Divider(height: AppSpacing.space4),
           // Total
@@ -310,6 +333,16 @@ class _OrderSummary extends ConsumerWidget {
             label: 'Total',
             value: CurrencyFormatter.format(order.totalAmount),
             isBold: true,
+          ),
+          const SizedBox(height: AppSpacing.space2),
+          // Discount button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.local_offer, size: 18),
+              label: const Text('Tambah Diskon'),
+              onPressed: () => _showDiscountDialog(context, ref),
+            ),
           ),
           const SizedBox(height: AppSpacing.space4),
           // Action buttons
@@ -329,13 +362,89 @@ class _OrderSummary extends ConsumerWidget {
                 child: AppButton(
                   label: 'Bayar',
                   onPressed: () {
-                    // TODO: Navigate to payment
+                    context.push(AppRoutes.payment);
                   },
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDiscountDialog(BuildContext context, WidgetRef ref) {
+    final nameCtrl = TextEditingController();
+    final valueCtrl = TextEditingController();
+    String type = 'Nominal';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setInnerState) => AlertDialog(
+          title: const Text('Tambah Diskon'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nama Diskon', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: AppSpacing.space3),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: valueCtrl,
+                      decoration: const InputDecoration(labelText: 'Nilai', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.space2),
+                  DropdownButton<String>(
+                    value: type,
+                    items: const [
+                      DropdownMenuItem(value: 'Nominal', child: Text('Rp')),
+                      DropdownMenuItem(value: 'Percentage', child: Text('%')),
+                    ],
+                    onChanged: (v) => setInnerState(() => type = v!),
+                  ),
+                ],
+              ),
+              if (type == 'Percentage')
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.space2),
+                  child: Text('Contoh: Masukkan 10 untuk diskon 10%', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            AppButton(
+              label: 'Terapkan',
+              onPressed: () {
+                final name = nameCtrl.text.trim();
+                final val = double.tryParse(valueCtrl.text) ?? 0;
+                final orderState = ref.read(currentOrderProvider);
+                final subtotal = orderState.subtotal;
+                final amount = type == 'Percentage' ? subtotal * val / 100 : val;
+                if (name.isEmpty || val <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Isi nama dan nilai diskon'), backgroundColor: AppColors.error),
+                  );
+                  return;
+                }
+                ref.read(currentOrderProvider.notifier).applyDiscount(
+                  discountName: name,
+                  discountType: type,
+                  discountValue: val,
+                  discountAmount: amount,
+                );
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

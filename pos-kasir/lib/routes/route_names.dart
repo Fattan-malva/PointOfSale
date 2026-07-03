@@ -6,6 +6,7 @@ class AppRoutes {
   static const String order = '/order';
   static const String payment = '/payment';
   static const String orderHistory = '/order-history';
+  static const String tableSelection = '/table-selection';
   static const String profile = '/profile';
   static const String settings = '/settings';
   static const String splash = '/';

@@ -18,10 +18,7 @@ class OrderHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(orderHistoryProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Riwayat Pesanan'), elevation: 0),
-      body: ordersAsync.when(
+    return ordersAsync.when(
         data: (orders) {
           if (orders.isEmpty) {
             return const EmptyView(
@@ -44,7 +41,6 @@ class OrderHistoryScreen extends ConsumerWidget {
           message: e.toString(),
           onRetry: () => ref.invalidate(orderHistoryProvider),
         ),
-      ),
     );
   }
 }

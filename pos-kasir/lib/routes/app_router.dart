@@ -7,6 +7,7 @@ import '../features/menu/menu_screen.dart';
 import '../features/order/order_screen.dart';
 import '../features/order/order_history_screen.dart';
 import '../features/payment/payment_screen.dart';
+import '../features/table/table_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -63,6 +64,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'orderHistory',
         builder: (context, state) => const OrderHistoryScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.tableSelection,
+        name: 'tableSelection',
+        builder: (context, state) => const TableSelectionScreen(),
+      ),
     ],
   );
 });
@@ -75,5 +81,6 @@ class AppRoutes {
   static const String order = '/order';
   static const String payment = '/payment';
   static const String orderHistory = '/order-history';
+  static const String tableSelection = '/table-selection';
   static const String splash = '/';
 }

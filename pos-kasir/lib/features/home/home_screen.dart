@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../routes/app_router.dart';
 import '../auth/auth_provider.dart';
 import '../menu/menu_screen.dart';
 import '../order/order_screen.dart';
@@ -32,25 +34,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: const Text('POS Kasir'),
         elevation: 0,
         actions: [
+          // New order button
+          if (!orderState.hasOrder)
+            IconButton(
+              icon: const Icon(Icons.add_shopping_cart),
+              tooltip: 'Pesanan Baru',
+              onPressed: () => context.push('/table-selection'),
+            ),
           // Order count badge
           if (orderState.hasOrder)
             Padding(
               padding: const EdgeInsets.only(right: AppSpacing.space2),
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.space3,
-                    vertical: AppSpacing.space1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentSoft,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                  ),
-                  child: Text(
-                    '${orderState.itemCount} item',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
+                child: GestureDetector(
+                  onTap: () => setState(() => _currentIndex = 1),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.space3,
+                      vertical: AppSpacing.space1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentSoft,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                    ),
+                    child: Text(
+                      '${orderState.itemCount} item',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),

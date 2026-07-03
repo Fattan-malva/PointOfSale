@@ -98,6 +98,30 @@ class CrmService {
     return repo.clearCart(customerId);
   }
 
+  // --- Points ---
+  async getPointsSummary(customerId) {
+    return repo.getCustomerTotalPoints(customerId);
+  }
+
+  async getPointHistory(customerId) {
+    return repo.findPointsByCustomerId(customerId);
+  }
+
+  async redeemPoints(customerId, points, reference) {
+    const summary = await repo.getCustomerTotalPoints(customerId);
+    if (parseInt(points) > summary.TotalPoints) {
+      throw new Error('Insufficient points');
+    }
+    const history = await repo.createPointHistory({
+      CustomerID: customerId,
+      Point: points,
+      Type: 'Redeem',
+      Reference: reference || 'Point Redeem',
+    });
+    await repo.updateCustomerPoints(customerId, summary.TotalPoints - parseInt(points));
+    return history;
+  }
+
   // --- Notification ---
   async getNotifications(customerId) {
     return repo.findNotificationsByCustomerId(customerId);

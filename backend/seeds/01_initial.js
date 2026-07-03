@@ -194,16 +194,80 @@ exports.seed = async (knex) => {
       { RolePermissionID: uuidv7(), RoleID: R_CUSTOMER, PermissionID: P_CREATE_ORDER },
     ]);
 
+    // Create branch first before user (to satisfy foreign key constraint)
+    const BRANCH_ID = '00000000-0000-0000-0000-000000000001';
+    const existingBranch = await trx('Branch').where('BranchID', BRANCH_ID).first();
+    if (!existingBranch) {
+      await trx('Branch').insert({
+        BranchID: BRANCH_ID,
+        BranchCode: 'MAIN',
+        BranchName: 'Cabang Utama',
+        Address: 'Jl. Contoh No. 1',
+        Phone: '021-12345678',
+        IsActive: true,
+      });
+    }
+
     const pwd = await require('bcrypt').hash('admin123', 10);
-    await trx('MstUser').insert({
-      UserID: '00000000-0000-0000-0000-000000000001',
-      RoleID: R_ADMIN,
-      BranchID: '00000000-0000-0000-0000-000000000001',
-      Username: 'admin',
-      PasswordHash: pwd,
-      FullName: 'Super Admin',
-      IsActive: true,
-    });
+    
+    // Create test users with different roles
+    await trx('MstUser').insert([
+      {
+        UserID: '00000000-0000-0000-0000-000000000001',
+        RoleID: R_ADMIN,
+        BranchID: BRANCH_ID,
+        Username: 'admin',
+        PasswordHash: pwd,
+        FullName: 'Super Admin',
+        Email: 'admin@pos.com',
+        Phone: '081-0001',
+        IsActive: true,
+      },
+      {
+        UserID: '00000000-0000-0000-0000-000000000002',
+        RoleID: R_OWNER,
+        BranchID: BRANCH_ID,
+        Username: 'owner',
+        PasswordHash: pwd,
+        FullName: 'Owner Utama',
+        Email: 'owner@pos.com',
+        Phone: '081-0002',
+        IsActive: true,
+      },
+      {
+        UserID: '00000000-0000-0000-0000-000000000003',
+        RoleID: R_MANAGER,
+        BranchID: BRANCH_ID,
+        Username: 'manager',
+        PasswordHash: pwd,
+        FullName: 'Manager Cabang',
+        Email: 'manager@pos.com',
+        Phone: '081-0003',
+        IsActive: true,
+      },
+      {
+        UserID: '00000000-0000-0000-0000-000000000004',
+        RoleID: R_CASHIER,
+        BranchID: BRANCH_ID,
+        Username: 'kasir',
+        PasswordHash: pwd,
+        FullName: 'Kasir 1',
+        Email: 'kasir@pos.com',
+        Phone: '081-0004',
+        IsActive: true,
+      },
+      {
+        UserID: '00000000-0000-0000-0000-000000000005',
+        RoleID: R_KITCHEN,
+        BranchID: BRANCH_ID,
+        Username: 'dapur',
+        PasswordHash: pwd,
+        FullName: 'Staff Dapur',
+        Email: 'dapur@pos.com',
+        Phone: '081-0005',
+        IsActive: true,
+      },
+    ]);
 
     await trx('AppConfig').insert({
       ConfigID: uuidv7(),

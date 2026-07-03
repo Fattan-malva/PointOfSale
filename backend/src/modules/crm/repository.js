@@ -150,6 +150,35 @@ class CrmRepository {
   async markAllNotificationsRead(customerId) {
     return db('CustomerNotification').where({ CustomerID: customerId, IsRead: false }).update({ IsRead: true });
   }
+
+  async findPointsByCustomerId(customerId) {
+    return db('PointHistory')
+      .where('CustomerID', customerId)
+      .orderBy('CreatedAt', 'desc');
+  }
+
+  async getCustomerTotalPoints(customerId) {
+    const result = await db('PointHistory')
+      .where('CustomerID', customerId)
+      .select(
+        db.raw("COALESCE(SUM(CASE WHEN Type = 'Earn' THEN Point ELSE 0 END), 0) as Earned"),
+        db.raw("COALESCE(SUM(CASE WHEN Type = 'Redeem' THEN Point ELSE 0 END), 0) as Redeemed"),
+        db.raw("COALESCE(SUM(CASE WHEN Type = 'Expired' THEN Point ELSE 0 END), 0) as Expired")
+      )
+      .first();
+    const total = parseInt(result.Earned) - parseInt(result.Redeemed) - parseInt(result.Expired);
+    return { ...result, TotalPoints: Math.max(0, total) };
+  }
+
+  async createPointHistory(data) {
+    data.PointHistoryID = uuidv7();
+    await db('PointHistory').insert(data);
+    return db('PointHistory').where('PointHistoryID', data.PointHistoryID).first();
+  }
+
+  async updateCustomerPoints(customerId, points) {
+    await db('MstCustomer').where('CustomerID', customerId).update({ Point: points });
+  }
 }
 
 module.exports = CrmRepository;

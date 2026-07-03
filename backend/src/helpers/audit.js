@@ -17,12 +17,14 @@ async function auditLog({ UserID, Module, Action, TableName, RecordID, OldValue,
 }
 
 async function userActivity({ UserID, UserType, Action, Device, IPAddress, UserAgent }) {
+  // Truncate Device to column length (100 chars) to avoid SQL truncation error
+  const safeDevice = Device && Device.length > 100 ? Device.substring(0, 100) : Device;
   await db('UserActivity').insert({
     ActivityID: uuidv7(),
     UserID,
     UserType: UserType || 'Employee',
     Action,
-    Device: Device || null,
+    Device: safeDevice || null,
     IPAddress: IPAddress || null,
     UserAgent: UserAgent || null,
     CreatedAt: new Date(),

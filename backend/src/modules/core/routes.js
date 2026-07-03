@@ -303,6 +303,12 @@ async function coreRoutes(fastify, opts) {
 
   // ==================== Auth ====================
   fastify.post('/auth/user/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
     schema: {
       body: {
         type: 'object',

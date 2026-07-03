@@ -3,14 +3,16 @@ const Fastify = require('fastify');
 const fastifyJwt = require('@fastify/jwt');
 const fastifyCors = require('@fastify/cors');
 const fastifySensible = require('@fastify/sensible');
+const fastifyRateLimit = require('@fastify/rate-limit');
 const crypto = require('crypto');
 const coreRoutes = require('./modules/core/routes');
-const masterRoutes = require('./modules/master/routes');
+const masterRoutes =require('./modules/master/routes');
 const transactionRoutes = require('./modules/transaction/routes');
 const inventoryRoutes = require('./modules/inventory/routes');
 const crmRoutes = require('./modules/crm/routes');
 const promotionRoutes = require('./modules/promotion/routes');
 const systemRoutes = require('./modules/system/routes');
+const reportingRoutes = require('./modules/reporting/routes');
 
 const knex = require('./db');
 const uuidv7 = require('./helpers/uuidv7');
@@ -35,6 +37,11 @@ app.register(fastifyJwt, {
 });
 
 app.register(fastifySensible);
+
+app.register(fastifyRateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+});
 
 app.decorate('knex', knex);
 
@@ -147,6 +154,9 @@ app.post('/api/auth/refresh', async (request, reply) => {
     return reply.status(401).send({ error: 'AccountSuspended' });
   }
 
+  // Revoke the old refresh token (rotation)
+  await knex('RefreshToken').where('RefreshTokenID', stored.RefreshTokenID).update({ IsRevoked: true });
+
   let userData;
   if (stored.UserType === 'Customer') {
     userData = await knex('MstCustomer').where('CustomerID', stored.UserID).first();
@@ -155,7 +165,8 @@ app.post('/api/auth/refresh', async (request, reply) => {
       id: userData.CustomerID,
       type: 'customer',
     });
-    return { accessToken: newAccessToken };
+    const newRefreshToken = await app.generateRefreshToken(stored.UserID, 'Customer');
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 
   userData = await knex('MstUser').where('UserID', stored.UserID).first();
@@ -169,7 +180,9 @@ app.post('/api/auth/refresh', async (request, reply) => {
     type: 'user',
   });
 
-  return { accessToken: newAccessToken };
+  const newRefreshToken = await app.generateRefreshToken(stored.UserID, 'Employee');
+
+  return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 });
 
 app.post('/api/auth/logout', async (request, reply) => {
@@ -194,5 +207,6 @@ app.register(inventoryRoutes, { prefix: '/api' });
 app.register(crmRoutes, { prefix: '/api' });
 app.register(promotionRoutes, { prefix: '/api' });
 app.register(systemRoutes, { prefix: '/api' });
+app.register(reportingRoutes, { prefix: '/api' });
 
 module.exports = app;

@@ -48,10 +48,9 @@ class PaymentState {
 }
 
 class PaymentNotifier extends StateNotifier<PaymentState> {
-  final Ref _ref;
   final _repo = PaymentRepository();
 
-  PaymentNotifier(this._ref) : super(PaymentState());
+  PaymentNotifier(Ref ref) : super(PaymentState());
 
   Future<void> processPayment(
     String orderId, {

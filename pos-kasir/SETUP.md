@@ -34,6 +34,20 @@ flutter run -d chrome
 flutter run -d windows
 ```
 
+## Test Credentials
+
+Berikut username dan password untuk masing‑masing role yang sudah disediakan di seed:
+
+| Role   | Username | Password |
+|--------|----------|----------|
+| Admin  | admin    | admin123 |
+| Owner  | owner    | admin123 |
+| Manager| manager  | admin123 |
+| Kasir  | kasir    | admin123 |
+| Dapur  | dapur    | admin123 |
+
+Gunakan kredensial di atas untuk login pada aplikasi POS Kasir.
+
 ## Platform
 
 Didukung: Android, iOS, Web, Windows, macOS, Linux

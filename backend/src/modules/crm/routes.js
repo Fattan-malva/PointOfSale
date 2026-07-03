@@ -4,7 +4,14 @@ const { userActivity } = require('../../helpers/audit');
 module.exports = async function (app) {
   const svc = new CrmService();
 
-  app.post('/auth/customer/login', async (req, reply) => {
+  app.post('/auth/customer/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (req, reply) => {
     const { phone, email } = req.body;
     if (!phone && !email) {
       return reply.status(400).send({ error: 'Phone or email required' });
@@ -160,6 +167,30 @@ module.exports = async function (app) {
     authenticated.delete('/customers/me/cart', async (req) => {
       await svc.clearCart(req.user.id);
       return { message: 'Cart cleared' };
+    });
+
+    // Points
+    authenticated.get('/customers/me/points', async (req) => {
+      const summary = await svc.getPointsSummary(req.user.id);
+      return { data: summary };
+    });
+
+    authenticated.get('/customers/me/points/history', async (req) => {
+      const history = await svc.getPointHistory(req.user.id);
+      return { data: history };
+    });
+
+    authenticated.post('/customers/me/points/redeem', async (req, reply) => {
+      const { points, reference } = req.body;
+      if (!points || points <= 0) {
+        return reply.status(400).send({ error: 'Points must be greater than 0' });
+      }
+      try {
+        const result = await svc.redeemPoints(req.user.id, points, reference);
+        return { data: result };
+      } catch (e) {
+        return reply.status(400).send({ error: e.message });
+      }
     });
 
     // Notification

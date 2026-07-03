@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_shadows.dart';
@@ -13,8 +14,11 @@ import '../../core/widgets/error_view.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/responsive.dart';
 import '../../models/item_model.dart';
+import '../../routes/app_router.dart';
 import '../order/order_provider.dart';
+import '../auth/auth_provider.dart';
 import 'menu_provider.dart';
+import 'modifier_dialog.dart';
 
 class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({super.key});
@@ -246,22 +250,59 @@ class _ItemCard extends ConsumerWidget {
   }
 
   void _addToOrder(BuildContext context, WidgetRef ref) async {
-    final orderState = ref.read(currentOrderProvider);
+    var orderState = ref.read(currentOrderProvider);
 
     // If no order exists, create one first
     if (!orderState.hasOrder) {
-      // TODO: Get branchId and userId from auth
-      // For now, show a message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Buat pesanan terlebih dahulu'),
-          backgroundColor: AppColors.warning,
-        ),
+      final authState = ref.read(authStateProvider);
+      if (authState.user == null) return;
+
+      await ref.read(currentOrderProvider.notifier).createOrder(
+        branchId: authState.user!.branchId!,
+        userId: authState.user!.id,
+        orderType: 'DineIn',
       );
-      return;
+      orderState = ref.read(currentOrderProvider);
+      if (!orderState.hasOrder) return;
     }
 
-    await ref.read(currentOrderProvider.notifier).addItem(item.id);
+    // Show modifier dialog if item has modifiers
+    final result = await ModifierDialog.show(
+      context,
+      itemId: item.id,
+      itemName: item.itemName,
+      itemPrice: item.price,
+    );
+
+    if (result == null || !context.mounted) return;
+
+    final qty = (result['qty'] as int?) ?? 1;
+    final note = result['note'] as String?;
+
+    // Add item to order
+    await ref.read(currentOrderProvider.notifier).addItem(
+      item.id,
+      qty: qty.toDouble(),
+      note: note,
+    );
+
+    // Apply modifiers
+    final orderStateNow = ref.read(currentOrderProvider);
+    if (orderStateNow.order != null && orderStateNow.order!.details.isNotEmpty) {
+      final lastDetail = orderStateNow.order!.details.last;
+      final modifierOptions = result['modifierOptions'] as Map<String, String>? ?? {};
+      for (final entry in modifierOptions.entries) {
+        try {
+          await ref.read(orderRepositoryProvider).addModifierToItem(
+            orderStateNow.order!.id,
+            lastDetail.id,
+            modifierId: entry.key,
+            modifierOptionId: entry.value,
+            optionName: entry.value,
+          );
+        } catch (_) {}
+      }
+    }
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -333,12 +374,12 @@ class _OrderSummaryBar extends ConsumerWidget {
           ),
           const SizedBox(width: AppSpacing.space3),
           // Pay button
-          AppButton(
-            label: 'Bayar',
-            onPressed: () {
-              // TODO: Navigate to payment screen
-            },
-          ),
+            AppButton(
+              label: 'Bayar',
+              onPressed: () {
+                context.push(AppRoutes.payment);
+              },
+            ),
         ],
       ),
     );

@@ -6,6 +6,10 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   return OrderRepository();
 });
 
+final orderDetailRepositoryProvider = Provider<OrderRepository>((ref) {
+  return OrderRepository();
+});
+
 // Current active order (Draft/Confirmed)
 final currentOrderProvider = StateNotifierProvider<OrderNotifier, OrderState>((
   ref,
@@ -43,10 +47,9 @@ class OrderState {
 }
 
 class OrderNotifier extends StateNotifier<OrderState> {
-  final Ref _ref;
   final _repo = OrderRepository();
 
-  OrderNotifier(this._ref) : super(OrderState());
+  OrderNotifier(Ref ref) : super(OrderState());
 
   Future<void> createOrder({
     required String branchId,
@@ -130,6 +133,41 @@ class OrderNotifier extends StateNotifier<OrderState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final order = await _repo.cancelOrder(state.order!.id);
+      state = state.copyWith(order: order, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> applyDiscount({
+    required String discountName,
+    required String discountType,
+    required double discountValue,
+    required double discountAmount,
+  }) async {
+    if (state.order == null) return;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repo.applyDiscount(
+        state.order!.id,
+        discountName: discountName,
+        discountType: discountType,
+        discountValue: discountValue,
+        discountAmount: discountAmount,
+      );
+      final order = await _repo.getOrderById(state.order!.id);
+      state = state.copyWith(order: order, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> removeDiscount(String discountId) async {
+    if (state.order == null) return;
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repo.removeDiscount(state.order!.id, discountId);
+      final order = await _repo.getOrderById(state.order!.id);
       state = state.copyWith(order: order, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());

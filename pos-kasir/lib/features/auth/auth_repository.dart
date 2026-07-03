@@ -7,10 +7,11 @@ class AuthRepository {
   Future<UserModel> login({required String email, required String password}) async {
     try {
       final response = await _apiClient.post('/auth/user/login', data: {'Username': email, 'Password': password});
-      final data = response.data['data'] as Map<String, dynamic>;
-      final accessToken = data['accessToken'] as String?;
-      final refreshToken = data['refreshToken'] as String?;
-      final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      final data = response.data;
+      final accessToken = data['accessToken'] as String? ?? data['data']['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String? ?? data['data']['refreshToken'] as String?;
+      final userData = data['user'] as Map<String, dynamic>? ?? data['data']['user'] as Map<String, dynamic>;
+      final user = UserModel.fromJson(userData);
       if (accessToken != null) await _apiClient.secureStorage.saveAccessToken(accessToken);
       if (refreshToken != null) await _apiClient.secureStorage.saveRefreshToken(refreshToken);
       await _apiClient.secureStorage.saveUserId(user.id);

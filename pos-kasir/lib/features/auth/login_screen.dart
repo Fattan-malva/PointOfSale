@@ -39,30 +39,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     final authNotifier = ref.read(authStateProvider.notifier);
-    authNotifier.login(
+    final success = await authNotifier.login(
       email: _emailController.text,
       password: _passwordController.text,
     );
+    if (success && mounted) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
 
-    // Show error if present
-    if (authState.error != null && authState.error!.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Listen to auth state changes to show error
+    ref.listen(authStateProvider, (previous, next) {
+      if (next.error != null && next.error!.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authState.error!),
+            content: Text(next.error!),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 3),
           ),
         );
-        ref.read(authStateProvider.notifier).clearError();
-      });
-    }
+        // Clear error after showing
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            ref.read(authStateProvider.notifier).clearError();
+          }
+        });
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -93,13 +102,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: AppSpacing.space8),
 
-                  // Email field
+                  // Username field
                   AppTextField(
-                    label: 'Email',
-                    hintText: 'Masukkan email Anda',
+                    label: 'Username',
+                    hintText: 'Masukkan username Anda',
                     controller: _emailController,
                     focusNode: _emailFocus,
-                    keyboardType: TextInputType.emailAddress,
                     onChanged: (_) {
                       setState(() {});
                     },
@@ -149,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: AppSpacing.space1),
                         Text(
-                          'Email: admin@posapp.com\nPassword: admin123',
+                          'Username: kasir\nPassword: admin123',
                           style: AppTypography.caption,
                           textAlign: TextAlign.center,
                         ),

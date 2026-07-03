@@ -18,16 +18,17 @@ class UserModel {
     required this.createdAt,
   });
 
-  // Factory constructor dari JSON (biasanya dari API response)
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      name: json['name'] as String,
-      role: json['role'] as String,
-      branchId: json['branchId'] as String?,
-      isActive: json['isActive'] as bool? ?? true,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: (json['UserID'] ?? json['id']) as String,
+      email: (json['Username'] ?? json['email'] ?? '') as String,
+      name: (json['FullName'] ?? json['name']) as String,
+      role: (json['RoleName'] ?? json['role'] ?? '') as String,
+      branchId: json['BranchID'] ?? json['branchId'] as String?,
+      isActive: json['IsActive'] as bool? ?? json['isActive'] as bool? ?? true,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
     );
   }
 
