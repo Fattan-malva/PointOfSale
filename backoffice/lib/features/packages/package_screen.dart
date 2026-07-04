@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
-import '../../core/constants/app_typography.dart';
-import '../../core/widgets/app_text_field.dart';
 import '../../models/item_model.dart';
 import 'package_provider.dart';
+import 'package_modal.dart';
 import '../items/repositories/item_repository.dart';
 
 class PackageScreen extends ConsumerStatefulWidget {
@@ -15,7 +15,8 @@ class PackageScreen extends ConsumerStatefulWidget {
   ConsumerState<PackageScreen> createState() => _PackageScreenState();
 }
 
-class _PackageScreenState extends ConsumerState<PackageScreen> {
+class _PackageScreenState extends ConsumerState<PackageScreen>
+    with TickerProviderStateMixin {
   final _searchController = TextEditingController();
 
   @override
@@ -29,346 +30,483 @@ class _PackageScreenState extends ConsumerState<PackageScreen> {
     final state = ref.watch(packageProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.warmBone,
       body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.space6),
+        padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            _buildHeader(state),
+            const SizedBox(height: 24),
+            _buildSearch(),
+            const SizedBox(height: 20),
+            Expanded(child: _buildBody(state)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(PackageState state) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Packages',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.04,
+                height: 1.1,
+                color: Color(0xFF111111),
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Manage your packages',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF787774),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: () => _onAddPackage(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFEAEAEA)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Packages', style: AppTypography.h2),
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppColors.accent),
-                  onPressed: () => _showAddPackageDialog(context),
+                Icon(Icons.add_rounded, size: 16, color: Color(0xFF111111)),
+                SizedBox(width: 8),
+                Text(
+                  'Add Package',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF111111),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.space6),
-            TextField(
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearch() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFEAEAEA)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF111111)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
               controller: _searchController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Search packages...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                filled: true,
-                fillColor: AppColors.surface,
+                hintStyle:
+                    TextStyle(fontSize: 14, color: AppColors.textDisabled),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
               onChanged: (v) => ref.read(packageProvider.notifier).setSearch(v),
             ),
-            const SizedBox(height: AppSpacing.space4),
-            Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : state.packages.isEmpty
-                      ? Center(child: Text(state.error ?? 'No packages found',
-                          style: AppTypography.body.copyWith(color: AppColors.textSecondary)))
-                      : Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: ListView.builder(
-                                itemCount: state.packages.length,
-                                itemBuilder: (_, i) {
-                                  final pkg = state.packages[i];
-                                  return Card(
-                                    color: state.selectedPackageId == pkg.id ? AppColors.accentSoft : null,
-                                    child: ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: AppColors.accentSoft,
-                                        child: const Icon(Icons.inventory_2, color: AppColors.accent, size: 20),
-                                      ),
-                                      title: Text(pkg.name),
-                                      subtitle: Text('${pkg.itemCode} • Rp ${_fmt(pkg.price)}'),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 20),
-                                            onPressed: () => _showEditPackageDialog(context, pkg),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                                            onPressed: () => _confirmDeletePackage(context, pkg.id, pkg.name),
-                                          ),
-                                        ],
-                                      ),
-                                      onTap: () => ref.read(packageProvider.notifier).loadPackageDetails(pkg.id),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            if (state.selectedPackageId != null) ...[
-                              const SizedBox(width: AppSpacing.space4),
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('Package Items', style: AppTypography.h3),
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle, color: AppColors.accent, size: 22),
-                                          onPressed: () => _showAddDetailDialog(context),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: AppSpacing.space3),
-                                    Expanded(
-                                      child: state.isLoadingDetails
-                                          ? const Center(child: CircularProgressIndicator())
-                                          : state.packageDetails.isEmpty
-                                              ? Center(child: Text('No items in this package',
-                                                  style: AppTypography.body.copyWith(color: AppColors.textSecondary)))
-                                              : ListView.builder(
-                                                  itemCount: state.packageDetails.length,
-                                                  itemBuilder: (_, i) {
-                                                    final detail = state.packageDetails[i];
-                                                    return Card(
-                                                      child: ListTile(
-                                                        title: Text(detail.itemName ?? detail.itemId),
-                                                        subtitle: Text('Qty: ${detail.qty}'),
-                                                        trailing: IconButton(
-                                                          icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20),
-                                                          onPressed: () => _confirmDeleteDetail(context, state.selectedPackageId!, detail.id, detail.itemName ?? ''),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddPackageDialog(BuildContext context) {
-    final codeCtrl = TextEditingController();
-    final nameCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Package'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(controller: codeCtrl, label: 'Package Code'),
-            const SizedBox(height: 12),
-            AppTextField(controller: nameCtrl, label: 'Package Name'),
-            const SizedBox(height: 12),
-            AppTextField(controller: priceCtrl, label: 'Price', keyboardType: TextInputType.number),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (codeCtrl.text.isEmpty || nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
-              await ref.read(packageProvider.notifier).createPackage({
-                'ItemCode': codeCtrl.text,
-                'ItemName': nameCtrl.text,
-                'Price': double.tryParse(priceCtrl.text) ?? 0,
-              });
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
           ),
         ],
       ),
     );
   }
 
-  void _showEditPackageDialog(BuildContext context, dynamic pkg) {
-    final codeCtrl = TextEditingController(text: pkg.itemCode);
-    final nameCtrl = TextEditingController(text: pkg.name);
-    final priceCtrl = TextEditingController(text: pkg.price.toString());
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Package'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(controller: codeCtrl, label: 'Package Code'),
-            const SizedBox(height: 12),
-            AppTextField(controller: nameCtrl, label: 'Package Name'),
-            const SizedBox(height: 12),
-            AppTextField(controller: priceCtrl, label: 'Price', keyboardType: TextInputType.number),
-          ],
+  Widget _buildBody(PackageState state) {
+    if (state.isLoading) {
+      return const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (codeCtrl.text.isEmpty || nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
-              await ref.read(packageProvider.notifier).updatePackage(pkg.id, {
-                'ItemCode': codeCtrl.text,
-                'ItemName': nameCtrl.text,
-                'Price': double.tryParse(priceCtrl.text) ?? 0,
-              });
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddDetailDialog(BuildContext context) async {
-    final qtyCtrl = TextEditingController(text: '1');
-    final searchCtrl = TextEditingController();
-    String? selectedItemId;
-    final packageId = ref.read(packageProvider).selectedPackageId;
-
-    List<ItemModel> items = ref.read(packageProvider).availableItems;
-    if (items.isEmpty) {
-      items = await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+      );
     }
-    List<ItemModel> filteredItems = List.from(items);
 
-    if (!context.mounted) return;
+    if (state.packages.isEmpty) {
+      return Center(
+        child: Text(
+          state.error ?? 'No packages found',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+        ),
+      );
+    }
 
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add Item to Package'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 2,
+          child: _buildPackageList(state),
+        ),
+        if (state.selectedPackageId != null) ...[
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: _buildSelectedPackageItems(state),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPackageList(PackageState state) {
+    return ListView.builder(
+      itemCount: state.packages.length,
+      itemBuilder: (_, i) {
+        final pkg = state.packages[i];
+        final selected = state.selectedPackageId == pkg.id;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color:
+                  selected ? const Color(0xFF111111) : const Color(0xFFEAEAEA),
+              width: selected ? 1.5 : 1,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Search items...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
-                    isDense: true,
-                    filled: true,
-                    fillColor: AppColors.surface,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F6F3),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  onChanged: (v) => setDialogState(() {
-                    filteredItems = items.where((item) =>
-                      item.name.toLowerCase().contains(v.toLowerCase()) ||
-                      item.itemCode.toLowerCase().contains(v.toLowerCase())
-                    ).toList();
-                  }),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.inventory_2_rounded,
+                      size: 18, color: Color(0xFF111111)),
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 200,
-                  child: filteredItems.isEmpty
-                      ? Center(child: Text('No items found',
-                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary)))
-                      : ListView.builder(
-                          itemCount: filteredItems.length,
-                          itemBuilder: (_, i) {
-                            final item = filteredItems[i];
-                            final isSelected = selectedItemId == item.id;
-                            return Card(
-                              color: isSelected ? AppColors.accentSoft : null,
-                              child: ListTile(
-                                dense: true,
-                                leading: Radio<String>(
-                                  value: item.id,
-                                  groupValue: selectedItemId,
-                                  onChanged: (v) => setDialogState(() => selectedItemId = v),
-                                ),
-                                title: Text(item.name, style: const TextStyle(fontSize: 14)),
-                                subtitle: Text('${item.itemCode} • Rp ${_fmt(item.price)}',
-                                    style: AppTypography.caption),
-                                onTap: () => setDialogState(() => selectedItemId = item.id),
-                              ),
-                            );
-                          },
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        pkg.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111111),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pkg.itemCode} • Rp ${_fmt(pkg.price)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF787774),
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                AppTextField(controller: qtyCtrl, label: 'Quantity', keyboardType: TextInputType.number),
+                const SizedBox(width: 8),
+                _IconAction(
+                  icon: Icons.edit_rounded,
+                  onTap: () => _onEditPackage(pkg),
+                ),
+                const SizedBox(width: 8),
+                _IconAction(
+                  icon: Icons.delete_outline_rounded,
+                  iconColor: AppColors.pastelRedText,
+                  onTap: () => _onDeletePackage(pkg),
+                ),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () async {
-                if (packageId == null || selectedItemId == null || qtyCtrl.text.isEmpty) return;
-                await ref.read(packageProvider.notifier).addDetail(
-                  packageId,
-                  selectedItemId!,
-                  int.tryParse(qtyCtrl.text) ?? 1,
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSelectedPackageItems(PackageState state) {
+    final packageId = state.selectedPackageId!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildItemsHeader(onAdd: () => _onAddDetail(packageId, state)),
+        const SizedBox(height: 16),
+        Expanded(
+          child: state.isLoadingDetails
+              ? const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : state.packageDetails.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No items in this package',
+                        style:
+                            TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: state.packageDetails.length,
+                      itemBuilder: (_, i) {
+                        final detail = state.packageDetails[i];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFEAEAEA)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        detail.itemName ?? detail.itemId,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF111111),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Qty: ${detail.qty}',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF787774),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _IconAction(
+                                  icon: Icons.remove_circle_outline_rounded,
+                                  iconColor: AppColors.pastelRedText,
+                                  onTap: () async {
+                                    final ok =
+                                        await PackageModal.confirmRemoveDetail(
+                                      context,
+                                      detail.itemName ?? detail.itemId,
+                                    );
+                                    if (!context.mounted || !ok) return;
+                                    await ref
+                                        .read(packageProvider.notifier)
+                                        .removeDetail(packageId, detail.id);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
         ),
-      ),
+      ],
     );
   }
 
-  void _confirmDeletePackage(BuildContext context, String id, String name) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Package'),
-        content: Text('Are you sure you want to delete "$name"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () async {
-              await ref.read(packageProvider.notifier).deletePackage(id);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+  Widget _buildItemsHeader({required VoidCallback onAdd}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Package Items',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111111),
           ),
-        ],
-      ),
+        ),
+        GestureDetector(
+          onTap: onAdd,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFEAEAEA)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded, size: 16, color: Color(0xFF111111)),
+                SizedBox(width: 8),
+                Text(
+                  'Add Item',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF111111),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+      ],
     );
   }
 
-  void _confirmDeleteDetail(BuildContext context, String packageId, String detailId, String itemName) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove Item'),
-        content: Text('Remove "$itemName" from this package?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () async {
-              await ref.read(packageProvider.notifier).removeDetail(packageId, detailId);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+  Future<void> _onAddPackage() async {
+    final result = await PackageModal.create(context);
+    if (result == null || !context.mounted) return;
+
+    final ok = await ref.read(packageProvider.notifier).createPackage({
+      'ItemCode': result['ItemCode'],
+      'ItemName': result['ItemName'],
+      'Price': result['Price'],
+    });
+
+    if (!context.mounted) return;
+    _snack(ok ? 'Package created' : 'Failed to create package', ok: ok);
+  }
+
+  Future<void> _onEditPackage(ItemModel pkg) async {
+    final result = await PackageModal.edit(context, pkg);
+    if (result == null || !context.mounted) return;
+
+    final ok = await ref.read(packageProvider.notifier).updatePackage(pkg.id, {
+      'ItemCode': result['ItemCode'],
+      'ItemName': result['ItemName'],
+      'Price': result['Price'],
+    });
+
+    if (!context.mounted) return;
+    _snack(ok ? 'Package updated' : 'Failed to update package', ok: ok);
+  }
+
+  Future<void> _onDeletePackage(ItemModel pkg) async {
+    final okConfirm = await PackageModal.confirmDelete(context, pkg.name);
+    if (!context.mounted || !okConfirm) return;
+
+    final ok = await ref.read(packageProvider.notifier).deletePackage(pkg.id);
+    if (!context.mounted) return;
+    _snack(ok ? 'Package deleted' : 'Failed to delete package', ok: ok);
+  }
+
+  Future<void> _onAddDetail(String packageId, PackageState state) async {
+    final items = state.availableItems.isNotEmpty
+        ? state.availableItems
+        : await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+
+    final result = await PackageModal.addDetail(
+      context,
+      items: items,
+      initialQty: 1,
+    );
+
+    if (result == null || !context.mounted) return;
+
+    final itemId = result['ItemID'] as String;
+    final qty = result['Qty'] as int;
+
+    final ok = await ref
+        .read(packageProvider.notifier)
+        .addDetail(packageId, itemId, qty);
+
+    if (!context.mounted) return;
+    _snack(ok ? 'Item added to package' : 'Failed to add item', ok: ok);
+  }
+
+  void _snack(String message, {required bool ok}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
           ),
-        ],
+        ),
+        backgroundColor: ok ? AppColors.pastelGreen : AppColors.pastelRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
+          side: const BorderSide(color: Color(0xFFEAEAEA)),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
   String _fmt(double a) => a.toStringAsFixed(0).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+}
+
+class _IconAction extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  const _IconAction({
+    required this.icon,
+    this.iconColor = const Color(0xFF5C5C63),
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFEAEAEA)),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Icon(icon, size: 16, color: iconColor),
+      ),
+    );
+  }
 }

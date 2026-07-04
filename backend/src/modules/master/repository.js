@@ -252,11 +252,44 @@ class MasterRepository {
   async createPackageDetail(data) {
     data.PackageDetailID = uuidv7();
     await db('PackageDetail').insert(data);
+
+    // Recompute package price = SUM(Qty * ChildItem.Price)
+    await this.recomputePackagePriceByPackageItemId(data.PackageItemID);
+
     return db('PackageDetail').where('PackageDetailID', data.PackageDetailID).first();
   }
 
   async deletePackageDetail(id) {
+    // Need PackageItemID to recompute price after delete
+    const detail = await db('PackageDetail').where('PackageDetailID', id).first();
+    if (detail) {
+      await db('PackageDetail').where('PackageDetailID', id).del();
+      await this.recomputePackagePriceByPackageItemId(detail.PackageItemID);
+      return;
+    }
+    // If nothing deleted, keep behaviour similar
     return db('PackageDetail').where('PackageDetailID', id).del();
+  }
+
+  async recomputePackagePriceByPackageItemId(packageItemId) {
+    // If item does not exist, just skip
+    // (safety: packageItemId should be valid because endpoint requires PackageItemID)
+    const [{ price: computedPrice }] = await db('Item as package')
+      .join('PackageDetail', 'PackageDetail.PackageItemID', 'package.ItemID')
+      .join('Item as child', 'PackageDetail.ItemID', 'child.ItemID')
+      .where('package.ItemID', packageItemId)
+      .groupBy('package.ItemID')
+      .select(db.raw('COALESCE(SUM(PackageDetail.Qty * child.Price), 0) as price'));
+
+    const finalPrice = computedPrice ?? 0;
+
+    // Ensure price is updated even when there are no details (SUM would return null)
+    // If no details exist, the join above returns no row, so computedPrice is undefined.
+    if (computedPrice === undefined) {
+      await db('Item').where('ItemID', packageItemId).update({ Price: 0 });
+    } else {
+      await db('Item').where('ItemID', packageItemId).update({ Price: finalPrice });
+    }
   }
 
   async findAllTable({ limit, offset } = {}) {

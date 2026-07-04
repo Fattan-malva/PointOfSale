@@ -383,6 +383,7 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
       },
       taxIds: (result['taxIds'] as List<String>?) ?? [],
       discountIds: (result['discountIds'] as List<String>?) ?? [],
+      branchIds: (result['branchIds'] as List<String>?) ?? [],
     );
     if (context.mounted)
       _snack(ok ? 'Item created' : 'Failed to create item', ok: ok);
@@ -396,6 +397,7 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
       categories: state.categories,
       allTaxes: state.allTaxes,
       allDiscounts: state.allDiscounts,
+      allBranches: state.allBranches,
     );
     if (result == null || !context.mounted) return;
 
@@ -413,6 +415,7 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
           },
           taxIds: (result['taxIds'] as List<String>?) ?? [],
           discountIds: (result['discountIds'] as List<String>?) ?? [],
+          branchIds: (result['branchIds'] as List<String>?) ?? [],
         );
     if (context.mounted)
       _snack(ok ? 'Item updated' : 'Failed to update item', ok: ok);
