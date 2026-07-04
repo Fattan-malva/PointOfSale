@@ -5,6 +5,7 @@ import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import 'modifier_provider.dart';
+import '../../core/widgets/backoffice_shimmer.dart';
 
 class ModifierScreen extends ConsumerStatefulWidget {
   const ModifierScreen({super.key});
@@ -17,6 +18,15 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(modifierProvider.notifier).refresh();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -27,123 +37,197 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
     final state = ref.watch(modifierProvider);
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.space6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(modifierProvider.notifier).refresh(),
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.space6),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Modifiers', style: AppTypography.h2),
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppColors.accent),
-                  onPressed: () => _showAddModifierDialog(context),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Modifiers', style: AppTypography.h2),
+                    IconButton(
+                      icon:
+                          const Icon(Icons.add_circle, color: AppColors.accent),
+                      onPressed: () => _showAddModifierDialog(context),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.space6),
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search modifiers...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                const SizedBox(height: AppSpacing.space6),
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search modifiers...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                  ),
+                  onChanged: (v) =>
+                      ref.read(modifierProvider.notifier).setSearch(v),
                 ),
-                filled: true,
-                fillColor: AppColors.surface,
-              ),
-              onChanged: (v) => ref.read(modifierProvider.notifier).setSearch(v),
-            ),
-            const SizedBox(height: AppSpacing.space4),
-            Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: state.modifiers.isEmpty
-                              ? Center(child: Text(state.error ?? 'No modifiers found',
-                                  style: AppTypography.body.copyWith(color: AppColors.textSecondary)))
-                              : ListView.builder(
-                                  itemCount: state.modifiers.length,
-                                  itemBuilder: (_, i) {
-                                    final m = state.modifiers[i];
-                                    return Card(
-                                      color: state.selectedModifierId == m.id ? AppColors.accentSoft : null,
-                                      child: ListTile(
-                                        title: Text(m.name),
-                                        subtitle: Text('${m.isRequired ? 'Required' : 'Optional'} • Max: ${m.maxSelect ?? 1}'),
-                                        trailing: IconButton(
-                                          icon: const Icon(Icons.chevron_right),
-                                          onPressed: () => ref.read(modifierProvider.notifier).loadOptions(m.id),
-                                        ),
-                                        onTap: () => ref.read(modifierProvider.notifier).loadOptions(m.id),
-                                      ),
-                                    );
-                                  },
-                                ),
+                const SizedBox(height: AppSpacing.space4),
+                state.isLoading
+                    ? Column(
+                        children: List.generate(
+                          8,
+                          (i) => const Padding(
+                            padding: EdgeInsets.only(bottom: 10),
+                            child: BackofficeShimmerRow(dense: true),
+                          ),
                         ),
-                        if (state.selectedModifierId != null) ...[
-                          const SizedBox(width: AppSpacing.space4),
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      )
+                    : SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.55,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: state.modifiers.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        state.error ?? 'No modifiers found',
+                                        style: AppTypography.body.copyWith(
+                                            color: AppColors.textSecondary),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: state.modifiers.length,
+                                      itemBuilder: (_, i) {
+                                        final m = state.modifiers[i];
+                                        return Card(
+                                          color:
+                                              state.selectedModifierId == m.id
+                                                  ? AppColors.accentSoft
+                                                  : null,
+                                          child: ListTile(
+                                            title: Text(m.name),
+                                            subtitle: Text(
+                                                '${m.isRequired ? 'Required' : 'Optional'} • Max: ${m.maxSelect ?? 1}'),
+                                            trailing: IconButton(
+                                              icon: const Icon(
+                                                  Icons.chevron_right),
+                                              onPressed: () => ref
+                                                  .read(
+                                                      modifierProvider.notifier)
+                                                  .loadOptions(m.id),
+                                            ),
+                                            onTap: () => ref
+                                                .read(modifierProvider.notifier)
+                                                .loadOptions(m.id),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                            if (state.selectedModifierId != null) ...[
+                              const SizedBox(width: AppSpacing.space4),
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Options', style: AppTypography.h3),
-                                    IconButton(
-                                      icon: const Icon(Icons.add_circle, color: AppColors.accent, size: 22),
-                                      onPressed: () => _showAddOptionDialog(context),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Options',
+                                            style: AppTypography.h3),
+                                        IconButton(
+                                          icon: const Icon(Icons.add_circle,
+                                              color: AppColors.accent,
+                                              size: 22),
+                                          onPressed: () =>
+                                              _showAddOptionDialog(context),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppSpacing.space3),
+                                    Expanded(
+                                      child: state.isLoadingOptions
+                                          ? ListView.builder(
+                                              itemCount: 6,
+                                              itemBuilder: (_, __) =>
+                                                  const Padding(
+                                                padding:
+                                                    EdgeInsets.only(bottom: 10),
+                                                child: BackofficeShimmerRow(),
+                                              ),
+                                            )
+                                          : state.currentOptions.isEmpty
+                                              ? Center(
+                                                  child: Text('No options',
+                                                      style: AppTypography.body
+                                                          .copyWith(
+                                                              color: AppColors
+                                                                  .textSecondary)))
+                                              : ListView.builder(
+                                                  itemCount: state
+                                                      .currentOptions.length,
+                                                  itemBuilder: (_, i) {
+                                                    final opt =
+                                                        state.currentOptions[i];
+                                                    return Card(
+                                                      child: ListTile(
+                                                        title: Text(opt.name),
+                                                        subtitle: opt.additionalPrice !=
+                                                                    null &&
+                                                                opt.additionalPrice! >
+                                                                    0
+                                                            ? Text(
+                                                                '+Rp ${_fmt(opt.additionalPrice!)}')
+                                                            : null,
+                                                        trailing: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                  Icons.edit,
+                                                                  color: AppColors
+                                                                      .textSecondary,
+                                                                  size: 18),
+                                                              onPressed: () =>
+                                                                  _showEditOptionDialog(
+                                                                      context,
+                                                                      opt),
+                                                            ),
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                  Icons
+                                                                      .delete_outline,
+                                                                  color:
+                                                                      AppColors
+                                                                          .error,
+                                                                  size: 18),
+                                                              onPressed: () =>
+                                                                  _confirmDeleteOption(
+                                                                      context,
+                                                                      opt.id,
+                                                                      opt.name),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: AppSpacing.space3),
-                                Expanded(
-                                  child: state.isLoadingOptions
-                                      ? const Center(child: CircularProgressIndicator())
-                                      : state.currentOptions.isEmpty
-                                          ? Center(child: Text('No options',
-                                              style: AppTypography.body.copyWith(color: AppColors.textSecondary)))
-                                          : ListView.builder(
-                                              itemCount: state.currentOptions.length,
-                                              itemBuilder: (_, i) {
-                                                final opt = state.currentOptions[i];
-                                                return Card(
-                                                  child: ListTile(
-                                                    title: Text(opt.name),
-                                                    subtitle: opt.additionalPrice != null && opt.additionalPrice! > 0
-                                                        ? Text('+Rp ${_fmt(opt.additionalPrice!)}')
-                                                        : null,
-                                                    trailing: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
-                                                          onPressed: () => _showEditOptionDialog(context, opt),
-                                                        ),
-                                                        IconButton(
-                                                          icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 18),
-                                                          onPressed: () => _confirmDeleteOption(context, opt.id, opt.name),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                // end content column children
+              ],
             ),
           ],
         ),
@@ -166,7 +250,10 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
             children: [
               AppTextField(controller: nameCtrl, label: 'Modifier Name'),
               const SizedBox(height: 12),
-              AppTextField(controller: maxSelectCtrl, label: 'Max Select', keyboardType: TextInputType.number),
+              AppTextField(
+                  controller: maxSelectCtrl,
+                  label: 'Max Select',
+                  keyboardType: TextInputType.number),
               const SizedBox(height: 12),
               CheckboxListTile(
                 title: const Text('Required'),
@@ -176,14 +263,17 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
                 if (nameCtrl.text.isEmpty) return;
                 await ref.read(modifierProvider.notifier).createModifier({
                   'ModifierName': nameCtrl.text,
                   'IsRequired': isRequired,
-                  if (maxSelectCtrl.text.isNotEmpty) 'MaxSelect': int.tryParse(maxSelectCtrl.text),
+                  if (maxSelectCtrl.text.isNotEmpty)
+                    'MaxSelect': int.tryParse(maxSelectCtrl.text),
                 });
                 if (ctx.mounted) Navigator.pop(ctx);
               },
@@ -208,11 +298,15 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
           children: [
             AppTextField(controller: nameCtrl, label: 'Option Name'),
             const SizedBox(height: 12),
-            AppTextField(controller: priceCtrl, label: 'Additional Price (optional)', keyboardType: TextInputType.number),
+            AppTextField(
+                controller: priceCtrl,
+                label: 'Additional Price (optional)',
+                keyboardType: TextInputType.number),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
@@ -220,7 +314,8 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
               if (modId == null) return;
               await ref.read(modifierProvider.notifier).createOption(modId, {
                 'OptionName': nameCtrl.text,
-                if (priceCtrl.text.isNotEmpty) 'AdditionalPrice': double.tryParse(priceCtrl.text),
+                if (priceCtrl.text.isNotEmpty)
+                  'AdditionalPrice': double.tryParse(priceCtrl.text),
               });
               if (ctx.mounted) Navigator.pop(ctx);
             },
@@ -233,7 +328,8 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
 
   void _showEditOptionDialog(BuildContext context, dynamic opt) {
     final nameCtrl = TextEditingController(text: opt.name);
-    final priceCtrl = TextEditingController(text: opt.additionalPrice?.toString() ?? '');
+    final priceCtrl =
+        TextEditingController(text: opt.additionalPrice?.toString() ?? '');
 
     showDialog(
       context: context,
@@ -244,17 +340,22 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
           children: [
             AppTextField(controller: nameCtrl, label: 'Option Name'),
             const SizedBox(height: 12),
-            AppTextField(controller: priceCtrl, label: 'Additional Price', keyboardType: TextInputType.number),
+            AppTextField(
+                controller: priceCtrl,
+                label: 'Additional Price',
+                keyboardType: TextInputType.number),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
               await ref.read(modifierProvider.notifier).updateOption(opt.id, {
                 'OptionName': nameCtrl.text,
-                if (priceCtrl.text.isNotEmpty) 'AdditionalPrice': double.tryParse(priceCtrl.text),
+                if (priceCtrl.text.isNotEmpty)
+                  'AdditionalPrice': double.tryParse(priceCtrl.text),
               });
               if (ctx.mounted) Navigator.pop(ctx);
             },
@@ -272,7 +373,8 @@ class _ModifierScreenState extends ConsumerState<ModifierScreen> {
         title: const Text('Delete Option'),
         content: Text('Are you sure you want to delete "$name"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {

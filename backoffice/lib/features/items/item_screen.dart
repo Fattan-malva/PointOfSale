@@ -4,6 +4,8 @@ import '../../core/constants/app_colors.dart';
 import '../../models/item_model.dart';
 import 'item_provider.dart';
 import 'item_modal.dart';
+import '../../core/widgets/backoffice_shimmer.dart';
+import 'repositories/item_repository.dart';
 
 class ItemScreen extends ConsumerStatefulWidget {
   const ItemScreen({super.key});
@@ -25,6 +27,10 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(itemProvider.notifier).refresh();
+    });
   }
 
   @override
@@ -47,10 +53,11 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
 
     return Scaffold(
       backgroundColor: AppColors.warmBone,
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(itemProvider.notifier).refresh(),
+        child: ListView(
+          padding: const EdgeInsets.all(32),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             _buildHeader(state),
             const SizedBox(height: 24),
@@ -58,7 +65,7 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
             const SizedBox(height: 16),
             _buildCategoryFilter(state),
             const SizedBox(height: 20),
-            Expanded(child: _buildList(state)),
+            _buildList(state),
           ],
         ),
       ),
@@ -185,11 +192,13 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
 
   Widget _buildList(ItemState state) {
     if (state.isLoading) {
-      return const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+      return Column(
+        children: List.generate(
+          10,
+          (i) => const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: BackofficeShimmerRow(dense: true),
+          ),
         ),
       );
     }
@@ -203,16 +212,15 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
       );
     }
 
-    return ListView.builder(
-      itemCount: state.items.length,
-      itemBuilder: (_, i) {
+    return Column(
+      children: List.generate(state.items.length, (i) {
         final item = state.items[i];
         return _AnimatedEntry(
           controller: _animController,
           index: i,
           child: _buildItemCard(item),
         );
-      },
+      }),
     );
   }
 
@@ -391,9 +399,31 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
 
   void _showEditDialog(ItemModel item) async {
     final state = ref.read(itemProvider);
+
+    // Ensure relation fields (taxes/discounts/branches) are populated
+    // so ItemModal.edit() can pre-check the correct checkboxes.
+    final repo = ref.read(itemRepositoryProvider);
+    ItemModel enriched = item;
+    try {
+      final fresh = await repo.getItem(item.id);
+      final taxesRaw = await repo.getItemTaxes(item.id);
+      final discountsRaw = await repo.getItemDiscounts(item.id);
+      final branchesRaw = await repo.getItemBranches(item.id);
+
+      enriched = fresh.copyWith(
+        taxes: taxesRaw.map((e) => ItemTaxInfo.fromJson(e)).toList(),
+        discounts:
+            discountsRaw.map((e) => ItemDiscountInfo.fromJson(e)).toList(),
+        branches: branchesRaw.map((e) => ItemBranchInfo.fromJson(e)).toList(),
+      );
+    } catch (_) {
+      // Fallback: use the original item (checkboxes may not preselect).
+      enriched = item;
+    }
+
     final result = await ItemModal.edit(
       context,
-      item,
+      enriched,
       categories: state.categories,
       allTaxes: state.allTaxes,
       allDiscounts: state.allDiscounts,
@@ -417,8 +447,15 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
           discountIds: (result['discountIds'] as List<String>?) ?? [],
           branchIds: (result['branchIds'] as List<String>?) ?? [],
         );
-    if (context.mounted)
-      _snack(ok ? 'Item updated' : 'Failed to update item', ok: ok);
+    if (context.mounted) {
+      final err = ref.read(itemProvider).error;
+      _snack(
+        ok
+            ? 'Item updated'
+            : (err != null ? 'Failed: $err' : 'Failed to update item'),
+        ok: ok,
+      );
+    }
   }
 
   void _confirmDelete(String id, String name) async {

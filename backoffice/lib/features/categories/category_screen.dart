@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/widgets/backoffice_shimmer.dart';
 import '../../models/category_model.dart';
 import 'category_provider.dart';
 
@@ -24,6 +25,11 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
+    // Ensure data refresh on each screen open.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(categoryProvider.notifier).refresh();
+    });
   }
 
   @override
@@ -46,16 +52,17 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
 
     return Scaffold(
       backgroundColor: AppColors.warmBone,
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(categoryProvider.notifier).refresh(),
+        child: ListView(
+          padding: const EdgeInsets.all(32),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             _buildHeader(),
             const SizedBox(height: 24),
             _buildSearch(),
             const SizedBox(height: 20),
-            Expanded(child: _buildList(state)),
+            _buildList(state),
           ],
         ),
       ),
@@ -152,7 +159,8 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
                 fontSize: 14,
                 color: Color(0xFF111111),
               ),
-              onChanged: (v) => ref.read(categoryProvider.notifier).setSearch(v),
+              onChanged: (v) =>
+                  ref.read(categoryProvider.notifier).setSearch(v),
             ),
           ),
         ],
@@ -162,33 +170,39 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
 
   Widget _buildList(CategoryState state) {
     if (state.isLoading) {
-      return const Center(
-        child: SizedBox(
-          width: 20, height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+      // Shimmer placeholders
+      return Column(
+        children: List.generate(
+          8,
+          (i) => const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: BackofficeShimmerRow(dense: true),
+          ),
         ),
       );
     }
 
     if (state.categories.isEmpty) {
       return Center(
-        child: Text(
-          state.error ?? 'No categories found',
-          style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 40),
+          child: Text(
+            state.error ?? 'No categories found',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      itemCount: state.categories.length,
-      itemBuilder: (_, i) {
+    return Column(
+      children: List.generate(state.categories.length, (i) {
         final cat = state.categories[i];
         return _AnimatedEntry(
           controller: _animController,
           index: i,
           child: _buildCategoryCard(cat),
         );
-      },
+      }),
     );
   }
 
@@ -244,7 +258,8 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: cat.isActive
                               ? AppColors.pastelGreen
@@ -320,9 +335,15 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
       builder: (ctx) => _DialogFrame(
         title: 'Add Category',
         children: [
-          _DialogField(controller: nameCtrl, label: 'Category Name', hint: 'e.g. Food & Beverage'),
+          _DialogField(
+              controller: nameCtrl,
+              label: 'Category Name',
+              hint: 'e.g. Food & Beverage'),
           const SizedBox(height: 16),
-          _DialogField(controller: descCtrl, label: 'Description', hint: 'Optional description'),
+          _DialogField(
+              controller: descCtrl,
+              label: 'Description',
+              hint: 'Optional description'),
         ],
         actions: (close) => [
           _CancelBtn(close: close),
@@ -332,7 +353,8 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
               loading.value = true;
-              final err = await ref.read(categoryProvider.notifier).createCategory({
+              final err =
+                  await ref.read(categoryProvider.notifier).createCategory({
                 'CategoryName': nameCtrl.text.trim(),
                 'Description': descCtrl.text.trim(),
               });
@@ -372,7 +394,9 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
               loading.value = true;
-              final err = await ref.read(categoryProvider.notifier).updateCategory(cat.id, {
+              final err = await ref
+                  .read(categoryProvider.notifier)
+                  .updateCategory(cat.id, {
                 'CategoryName': nameCtrl.text.trim(),
                 'Description': descCtrl.text.trim(),
               });
@@ -415,7 +439,8 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
             loading: loading,
             onPressed: () async {
               loading.value = true;
-              final err = await ref.read(categoryProvider.notifier).deleteCategory(id);
+              final err =
+                  await ref.read(categoryProvider.notifier).deleteCategory(id);
               loading.value = false;
               if (err == null) {
                 close();
@@ -433,11 +458,12 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
   void _snack(String message, {required bool ok}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
-        )),
+        content: Text(message,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
+            )),
         backgroundColor: ok ? AppColors.pastelGreen : AppColors.pastelRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -457,7 +483,8 @@ class _AnimatedEntry extends StatelessWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedEntry({required this.controller, required this.index, required this.child});
+  const _AnimatedEntry(
+      {required this.controller, required this.index, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -467,11 +494,14 @@ class _AnimatedEntry extends StatelessWidget {
 
     return FadeTransition(
       opacity: Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: controller, curve: Interval(start, end, curve: curve)),
+        CurvedAnimation(
+            parent: controller, curve: Interval(start, end, curve: curve)),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(
-          CurvedAnimation(parent: controller, curve: Interval(start, end, curve: curve)),
+        position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+            .animate(
+          CurvedAnimation(
+              parent: controller, curve: Interval(start, end, curve: curve)),
         ),
         child: child,
       ),
@@ -551,7 +581,8 @@ class _DialogField extends StatelessWidget {
   final String label;
   final String? hint;
 
-  const _DialogField({required this.controller, required this.label, this.hint});
+  const _DialogField(
+      {required this.controller, required this.label, this.hint});
 
   @override
   Widget build(BuildContext context) {
@@ -634,7 +665,8 @@ class _ActionBtn extends StatelessWidget {
       builder: (_, isLoading, __) => FilledButton(
         onPressed: isLoading ? null : onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: destructive ? const Color(0xFF9F2F2D) : const Color(0xFF111111),
+          backgroundColor:
+              destructive ? const Color(0xFF9F2F2D) : const Color(0xFF111111),
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFFEAEAEA),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
@@ -642,10 +674,14 @@ class _ActionBtn extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-                width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
               )
-            : Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            : Text(label,
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       ),
     );
   }

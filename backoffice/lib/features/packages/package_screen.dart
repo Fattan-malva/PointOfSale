@@ -7,6 +7,7 @@ import '../../models/item_model.dart';
 import 'package_provider.dart';
 import 'package_modal.dart';
 import '../items/repositories/item_repository.dart';
+import '../../core/widgets/backoffice_shimmer.dart';
 
 class PackageScreen extends ConsumerStatefulWidget {
   const PackageScreen({super.key});
@@ -20,6 +21,15 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(packageProvider.notifier).refresh();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -29,18 +39,23 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(packageProvider);
 
+    final h = MediaQuery.of(context).size.height;
     return Scaffold(
       backgroundColor: AppColors.warmBone,
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(packageProvider.notifier).refresh(),
+        child: ListView(
+          padding: const EdgeInsets.all(32),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             _buildHeader(state),
             const SizedBox(height: 24),
             _buildSearch(),
             const SizedBox(height: 20),
-            Expanded(child: _buildBody(state)),
+            SizedBox(
+              height: h - 32 - 24 - 20 - 120,
+              child: _buildBody(state),
+            ),
           ],
         ),
       ),
@@ -142,12 +157,38 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
 
   Widget _buildBody(PackageState state) {
     if (state.isLoading) {
-      return const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: ListView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 8,
+              itemBuilder: (_, __) => const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: BackofficeShimmerRow(dense: true),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: state.selectedPackageId == null
+                ? const Center(child: SizedBox.shrink())
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(
+                      6,
+                      (i) => const Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: BackofficeShimmer(
+                            width: double.infinity, height: 48),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
       );
     }
 
@@ -270,19 +311,21 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
         const SizedBox(height: 16),
         Expanded(
           child: state.isLoadingDetails
-              ? const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+              ? ListView.builder(
+                  itemCount: 6,
+                  itemBuilder: (_, __) => const Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: BackofficeShimmerRow(),
                   ),
                 )
               : state.packageDetails.isEmpty
                   ? const Center(
                       child: Text(
                         'No items in this package',
-                        style:
-                            TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF787774),
+                        ),
                       ),
                     )
                   : ListView.builder(

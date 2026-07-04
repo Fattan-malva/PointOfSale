@@ -48,7 +48,8 @@ class PackageState {
   }
 }
 
-final packageProvider = StateNotifierProvider<PackageNotifier, PackageState>((ref) {
+final packageProvider =
+    StateNotifierProvider<PackageNotifier, PackageState>((ref) {
   final repository = ref.watch(packageRepositoryProvider);
   final itemRepository = ref.watch(itemRepositoryProvider);
   return PackageNotifier(repository, itemRepository);
@@ -58,8 +59,17 @@ class PackageNotifier extends StateNotifier<PackageState> {
   final PackageRepository _repository;
   final ItemRepository _itemRepository;
 
-  PackageNotifier(this._repository, this._itemRepository) : super(PackageState()) {
+  PackageNotifier(this._repository, this._itemRepository)
+      : super(PackageState()) {
     loadPackages();
+  }
+
+  Future<void> refresh() async {
+    await loadPackages();
+    final selectedId = state.selectedPackageId;
+    if (selectedId != null) {
+      await loadPackageDetails(selectedId);
+    }
   }
 
   Future<void> loadPackages() async {
@@ -73,13 +83,18 @@ class PackageNotifier extends StateNotifier<PackageState> {
   }
 
   Future<void> loadPackageDetails(String packageId) async {
-    state = state.copyWith(selectedPackageId: packageId, isLoadingDetails: true);
+    state =
+        state.copyWith(selectedPackageId: packageId, isLoadingDetails: true);
     try {
       final details = await _repository.getPackageDetails(packageId);
       final items = await _itemRepository.getItems(itemType: 'Product');
-      state = state.copyWith(packageDetails: details, availableItems: items, isLoadingDetails: false);
+      state = state.copyWith(
+          packageDetails: details,
+          availableItems: items,
+          isLoadingDetails: false);
     } catch (e) {
-      state = state.copyWith(isLoadingDetails: false, error: 'Gagal memuat detail paket: $e');
+      state = state.copyWith(
+          isLoadingDetails: false, error: 'Gagal memuat detail paket: $e');
     }
   }
 
@@ -113,7 +128,9 @@ class PackageNotifier extends StateNotifier<PackageState> {
   Future<bool> deletePackage(String id) async {
     try {
       await _repository.deletePackage(id);
-      state = state.copyWith(selectedPackageId: state.selectedPackageId == id ? null : state.selectedPackageId);
+      state = state.copyWith(
+          selectedPackageId:
+              state.selectedPackageId == id ? null : state.selectedPackageId);
       await loadPackages();
       return true;
     } catch (e) {

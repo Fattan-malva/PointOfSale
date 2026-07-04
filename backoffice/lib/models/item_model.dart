@@ -36,14 +36,23 @@ class ItemModel {
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     return ItemModel(
       id: json['ItemID'] as String? ?? json['id'] as String,
-      itemCode: json['ItemCode'] as String? ?? json['itemCode'] as String? ?? '',
+      itemCode:
+          json['ItemCode'] as String? ?? json['itemCode'] as String? ?? '',
       name: json['ItemName'] as String? ?? json['name'] as String,
-      description: json['Description'] as String? ?? json['description'] as String?,
-      price: (json['Price'] as num?)?.toDouble() ?? (json['price'] as num?)?.toDouble() ?? 0,
-      costPrice: (json['CostPrice'] as num?)?.toDouble() ?? (json['costPrice'] as num?)?.toDouble(),
-      categoryId: json['CategoryID'] as String? ?? json['categoryId'] as String?,
-      categoryName: json['CategoryName'] as String? ?? json['categoryName'] as String?,
-      itemType: json['ItemType'] as String? ?? json['itemType'] as String? ?? 'Product',
+      description:
+          json['Description'] as String? ?? json['description'] as String?,
+      price: (json['Price'] as num?)?.toDouble() ??
+          (json['price'] as num?)?.toDouble() ??
+          0,
+      costPrice: (json['CostPrice'] as num?)?.toDouble() ??
+          (json['costPrice'] as num?)?.toDouble(),
+      categoryId:
+          json['CategoryID'] as String? ?? json['categoryId'] as String?,
+      categoryName:
+          json['CategoryName'] as String? ?? json['categoryName'] as String?,
+      itemType: json['ItemType'] as String? ??
+          json['itemType'] as String? ??
+          'Product',
       imageUrl: json['ImageURL'] as String? ?? json['imageUrl'] as String?,
       isActive: json['IsActive'] as bool? ?? json['isActive'] as bool? ?? true,
       createdAt: json['CreatedAt'] != null
@@ -161,8 +170,8 @@ class ItemBranchInfo {
       branchId: json['BranchID'] as String,
       branchCode: json['BranchCode'] as String,
       branchName: json['BranchName'] as String,
-      isActive: json['IsActive'] as bool,
-      isAvailable: json['IsAvailable'] as bool,
+      isActive: (json['IsActive'] as bool?) ?? false,
+      isAvailable: (json['IsAvailable'] as bool?) ?? true,
     );
   }
 }

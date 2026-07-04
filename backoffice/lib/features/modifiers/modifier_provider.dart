@@ -42,7 +42,8 @@ class ModifierState {
   }
 }
 
-final modifierProvider = StateNotifierProvider<ModifierNotifier, ModifierState>((ref) {
+final modifierProvider =
+    StateNotifierProvider<ModifierNotifier, ModifierState>((ref) {
   final repository = ref.watch(modifierRepositoryProvider);
   return ModifierNotifier(repository);
 });
@@ -54,23 +55,35 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
     loadModifiers();
   }
 
+  Future<void> refresh() async {
+    await loadModifiers();
+    final selectedId = state.selectedModifierId;
+    if (selectedId != null) {
+      await loadOptions(selectedId);
+    }
+  }
+
   Future<void> loadModifiers() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final modifiers = await _repository.getModifiers(search: state.searchQuery);
+      final modifiers =
+          await _repository.getModifiers(search: state.searchQuery);
       state = state.copyWith(modifiers: modifiers, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Gagal memuat modifier: $e');
+      state =
+          state.copyWith(isLoading: false, error: 'Gagal memuat modifier: $e');
     }
   }
 
   Future<void> loadOptions(String modifierId) async {
-    state = state.copyWith(selectedModifierId: modifierId, isLoadingOptions: true);
+    state =
+        state.copyWith(selectedModifierId: modifierId, isLoadingOptions: true);
     try {
       final options = await _repository.getModifierOptions(modifierId);
       state = state.copyWith(currentOptions: options, isLoadingOptions: false);
     } catch (e) {
-      state = state.copyWith(isLoadingOptions: false, error: 'Gagal memuat opsi: $e');
+      state = state.copyWith(
+          isLoadingOptions: false, error: 'Gagal memuat opsi: $e');
     }
   }
 
@@ -104,7 +117,9 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
   Future<bool> deleteModifier(String id) async {
     try {
       await _repository.deleteModifier(id);
-      state = state.copyWith(selectedModifierId: state.selectedModifierId == id ? null : state.selectedModifierId);
+      state = state.copyWith(
+          selectedModifierId:
+              state.selectedModifierId == id ? null : state.selectedModifierId);
       await loadModifiers();
       return true;
     } catch (e) {
@@ -113,7 +128,8 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
     }
   }
 
-  Future<bool> createOption(String modifierId, Map<String, dynamic> data) async {
+  Future<bool> createOption(
+      String modifierId, Map<String, dynamic> data) async {
     try {
       await _repository.createOption(modifierId, data);
       await loadOptions(modifierId);

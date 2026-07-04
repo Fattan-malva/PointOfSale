@@ -46,9 +46,17 @@ class TableNotifier extends StateNotifier<TableState> {
   final TableRepository _repository;
   final BranchRepository _branchRepository;
 
-  TableNotifier(this._repository, this._branchRepository) : super(TableState()) {
+  TableNotifier(this._repository, this._branchRepository)
+      : super(TableState()) {
     loadTables();
     loadBranches();
+  }
+
+  Future<void> refresh() async {
+    await Future.wait([
+      loadTables(),
+      loadBranches(),
+    ]);
   }
 
   Future<void> loadTables() async {

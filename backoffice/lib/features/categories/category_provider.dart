@@ -33,16 +33,21 @@ class CategoryState {
   }
 }
 
-final categoryProvider = StateNotifierProvider<CategoryNotifier, CategoryState>((ref) {
+final categoryProvider =
+    StateNotifierProvider<CategoryNotifier, CategoryState>((ref) {
   final repository = ref.watch(categoryRepositoryProvider);
-  return CategoryNotifier(repository, () => ref.read(itemProvider.notifier).refreshCategories());
+  return CategoryNotifier(
+    repository,
+    () => ref.read(itemProvider.notifier).refreshCategories(),
+  );
 });
 
 class CategoryNotifier extends StateNotifier<CategoryState> {
   final CategoryRepository _repository;
   final VoidCallback onCategoriesUpdated;
 
-  CategoryNotifier(this._repository, this.onCategoriesUpdated) : super(CategoryState()) {
+  CategoryNotifier(this._repository, this.onCategoriesUpdated)
+      : super(CategoryState()) {
     loadCategories();
   }
 
@@ -57,6 +62,8 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
       state = state.copyWith(isLoading: false, error: _fmtErr(e));
     }
   }
+
+  Future<void> refresh() => loadCategories();
 
   void setSearch(String query) {
     state = state.copyWith(searchQuery: query);

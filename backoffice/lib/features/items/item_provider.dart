@@ -54,7 +54,9 @@ class ItemState {
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
       searchQuery: searchQuery ?? this.searchQuery,
-      selectedCategoryId: clearCategoryFilter ? null : (selectedCategoryId ?? this.selectedCategoryId),
+      selectedCategoryId: clearCategoryFilter
+          ? null
+          : (selectedCategoryId ?? this.selectedCategoryId),
     );
   }
 }
@@ -65,7 +67,13 @@ final itemProvider = StateNotifierProvider<ItemNotifier, ItemState>((ref) {
   final taxRepository = ref.watch(taxRepositoryProvider);
   final discountRepository = ref.watch(discountRepositoryProvider);
   final branchRepository = ref.watch(branchRepositoryProvider);
-  return ItemNotifier(repository, catRepository, taxRepository, discountRepository, branchRepository);
+  return ItemNotifier(
+    repository,
+    catRepository,
+    taxRepository,
+    discountRepository,
+    branchRepository,
+  );
 });
 
 class ItemNotifier extends StateNotifier<ItemState> {
@@ -75,7 +83,8 @@ class ItemNotifier extends StateNotifier<ItemState> {
   final DiscountRepository _discountRepository;
   final BranchRepository _branchRepository;
 
-  ItemNotifier(this._repository, this._catRepository, this._taxRepository, this._discountRepository, this._branchRepository)
+  ItemNotifier(this._repository, this._catRepository, this._taxRepository,
+      this._discountRepository, this._branchRepository)
       : super(ItemState()) {
     loadItems();
     loadCategories();
@@ -96,6 +105,17 @@ class ItemNotifier extends StateNotifier<ItemState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Gagal memuat item: $e');
     }
+  }
+
+  Future<void> refresh() async {
+    // refresh utama untuk list, namun sekalian reload data pendukung agar tetap konsisten
+    await Future.wait([
+      loadItems(),
+      loadCategories(),
+      loadTaxes(),
+      loadDiscounts(),
+      loadBranches(),
+    ]);
   }
 
   Future<void> loadCategories() async {
@@ -143,7 +163,10 @@ class ItemNotifier extends StateNotifier<ItemState> {
     loadItems();
   }
 
-  Future<bool> createItem(Map<String, dynamic> data, {List<String>? taxIds, List<String>? discountIds, List<String>? branchIds}) async {
+  Future<bool> createItem(Map<String, dynamic> data,
+      {List<String>? taxIds,
+      List<String>? discountIds,
+      List<String>? branchIds}) async {
     try {
       final item = await _repository.createItem(data);
       for (final id in taxIds ?? []) {
@@ -163,7 +186,10 @@ class ItemNotifier extends StateNotifier<ItemState> {
     }
   }
 
-  Future<bool> updateItem(String id, Map<String, dynamic> data, {List<String>? taxIds, List<String>? discountIds, List<String>? branchIds}) async {
+  Future<bool> updateItem(String id, Map<String, dynamic> data,
+      {List<String>? taxIds,
+      List<String>? discountIds,
+      List<String>? branchIds}) async {
     try {
       await _repository.updateItem(id, data);
       if (taxIds != null) {
@@ -179,7 +205,8 @@ class ItemNotifier extends StateNotifier<ItemState> {
       }
       if (discountIds != null) {
         final current = await _repository.getItemDiscounts(id);
-        final currentIds = current.map((d) => d['DiscountID'] as String).toSet();
+        final currentIds =
+            current.map((d) => d['DiscountID'] as String).toSet();
         final newIds = discountIds.toSet();
         for (final did in currentIds.difference(newIds)) {
           await _repository.removeDiscountFromItem(id, did);

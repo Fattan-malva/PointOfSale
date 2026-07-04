@@ -1,6 +1,29 @@
 const db = require('../db');
 const uuidv7 = require('./uuidv7');
 
+function safeStringify(value) {
+  if (value === undefined) return undefined;
+  try {
+    // Handle circular references (e.g. Timeout objects)
+    const seen = new WeakSet();
+    return JSON.stringify(value, (key, val) => {
+      if (typeof val === 'object' && val !== null) {
+        if (seen.has(val)) return '[Circular]';
+        seen.add(val);
+      }
+      if (typeof val === 'function') return `[Function ${val.name || 'anonymous'}]`;
+      return val;
+    });
+  } catch (e) {
+    // Last resort: avoid throwing and breaking the request
+    try {
+      return String(value);
+    } catch (_) {
+      return '[Unserializable]';
+    }
+  }
+}
+
 async function auditLog({ UserID, Module, Action, TableName, RecordID, OldValue, NewValue, IPAddress }) {
   await db('AuditLog').insert({
     AuditID: uuidv7(),
@@ -9,8 +32,8 @@ async function auditLog({ UserID, Module, Action, TableName, RecordID, OldValue,
     Action,
     TableName,
     RecordID,
-    OldValue: OldValue ? JSON.stringify(OldValue) : null,
-    NewValue: NewValue ? JSON.stringify(NewValue) : null,
+    OldValue: OldValue ? safeStringify(OldValue) : null,
+    NewValue: NewValue ? safeStringify(NewValue) : null,
     IPAddress: IPAddress || null,
     CreatedAt: new Date(),
   });
