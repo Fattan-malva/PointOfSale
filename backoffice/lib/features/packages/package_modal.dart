@@ -12,46 +12,43 @@ class PackageModal {
     final nameCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
     final loading = ValueNotifier(false);
+    final selectedItems = <ItemModel>[];
+    final searchCtrl = TextEditingController();
+    final availableItems = <ItemModel>[]; // Ini akan diisi dari data source
 
-    return AppModal.show<Map<String, dynamic>>(
-      context,
-      AppModalConfig(
-        title: 'Create Package',
-        subtitle: 'Create a package and add items',
-        loading: loading,
-        submitLabel: 'Create',
-        onSubmit: () async {
-          final code = codeCtrl.text.trim();
-          final name = nameCtrl.text.trim();
-          final price = double.tryParse(priceCtrl.text);
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierColor: const Color(0x40A8A8AE),
+      builder: (_) {
+        return _PackageFormDialog(
+          mode: _DialogMode.create,
+          codeCtrl: codeCtrl,
+          nameCtrl: nameCtrl,
+          priceCtrl: priceCtrl,
+          searchCtrl: searchCtrl,
+          loading: loading,
+          availableItems: availableItems,
+          selectedItems: selectedItems,
+          onSave: () async {
+            final code = codeCtrl.text.trim();
+            final name = nameCtrl.text.trim();
+            final price = double.tryParse(priceCtrl.text);
 
-          if (code.isEmpty || name.isEmpty || price == null) return;
+            if (code.isEmpty || name.isEmpty || price == null) return;
 
-          loading.value = true;
-          await Future.delayed(const Duration(milliseconds: 100));
-          loading.value = false;
+            loading.value = true;
+            await Future.delayed(const Duration(milliseconds: 100));
+            loading.value = false;
 
-          Navigator.pop(context, {
-            'ItemCode': code,
-            'ItemName': name,
-            'Price': price,
-          });
-        },
-        fields: [
-          _RespRow([
-            ModalField(controller: codeCtrl, label: 'Package Code'),
-            ModalField(
-                controller: nameCtrl, label: 'Package Name', autofocus: true),
-          ]),
-          const SizedBox(height: 20),
-          _RespRow([
-            _Field(
-              label: 'PRICE',
-              child: _CurrencyField(controller: priceCtrl, hint: '0'),
-            ),
-          ]),
-        ],
-      ),
+            Navigator.pop(context, {
+              'ItemCode': code,
+              'ItemName': name,
+              'Price': price,
+              'Items': selectedItems.map((e) => e.id).toList(),
+            });
+          },
+        );
+      },
     );
   }
 
@@ -63,46 +60,68 @@ class PackageModal {
     final nameCtrl = TextEditingController(text: pkg.name);
     final priceCtrl = TextEditingController(text: pkg.price.toStringAsFixed(0));
     final loading = ValueNotifier(false);
+    final selectedItems =
+        <ItemModel>[]; // Ini akan diisi dengan item yang sudah dipilih
+    final searchCtrl = TextEditingController();
+    final availableItems = <ItemModel>[]; // Ini akan diisi dari data source
 
-    return AppModal.show<Map<String, dynamic>>(
-      context,
-      AppModalConfig(
-        title: 'Edit Package',
-        subtitle: 'Update package details',
-        loading: loading,
-        submitLabel: 'Update',
-        onSubmit: () async {
-          final code = codeCtrl.text.trim();
-          final name = nameCtrl.text.trim();
-          final price = double.tryParse(priceCtrl.text);
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierColor: const Color(0x40A8A8AE),
+      builder: (_) {
+        return _PackageFormDialog(
+          mode: _DialogMode.edit,
+          codeCtrl: codeCtrl,
+          nameCtrl: nameCtrl,
+          priceCtrl: priceCtrl,
+          searchCtrl: searchCtrl,
+          loading: loading,
+          availableItems: availableItems,
+          selectedItems: selectedItems,
+          onSave: () async {
+            final code = codeCtrl.text.trim();
+            final name = nameCtrl.text.trim();
+            final price = double.tryParse(priceCtrl.text);
 
-          if (code.isEmpty || name.isEmpty || price == null) return;
+            if (code.isEmpty || name.isEmpty || price == null) return;
 
-          loading.value = true;
-          await Future.delayed(const Duration(milliseconds: 100));
-          loading.value = false;
+            loading.value = true;
+            await Future.delayed(const Duration(milliseconds: 100));
+            loading.value = false;
 
-          Navigator.pop(context, {
-            'ItemCode': code,
-            'ItemName': name,
-            'Price': price,
-          });
-        },
-        fields: [
-          _RespRow([
-            ModalField(controller: codeCtrl, label: 'Package Code'),
-            ModalField(
-                controller: nameCtrl, label: 'Package Name', autofocus: true),
-          ]),
-          const SizedBox(height: 20),
-          _RespRow([
-            _Field(
-              label: 'PRICE',
-              child: _CurrencyField(controller: priceCtrl, hint: '0'),
-            ),
-          ]),
-        ],
-      ),
+            Navigator.pop(context, {
+              'ItemCode': code,
+              'ItemName': name,
+              'Price': price,
+              'Items': selectedItems.map((e) => e.id).toList(),
+            });
+          },
+        );
+      },
+    );
+  }
+
+  // Method untuk add detail (dipertahankan dari kode sebelumnya)
+  static Future<Map<String, dynamic>?> addDetail(
+    BuildContext context, {
+    required List<ItemModel> items,
+    int initialQty = 1,
+  }) {
+    final qtyCtrl = TextEditingController(text: initialQty.toString());
+    final searchCtrl = TextEditingController();
+
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierColor: const Color(0x40A8A8AE),
+      builder: (_) {
+        return _AddDetailDialog(
+          items: items,
+          filteredInit: List<ItemModel>.from(items),
+          searchCtrl: searchCtrl,
+          qtyCtrl: qtyCtrl,
+          selectedItemId: null,
+        );
+      },
     );
   }
 
@@ -127,9 +146,8 @@ class PackageModal {
           Navigator.pop(context, true);
         },
         fields: [
-          const ConfirmContent(
+          ConfirmContent(
               message: 'Are you sure you want to delete this package?'),
-          // keep text above; custom message below to keep consistent spacing:
           const SizedBox(height: 6),
           Text(
             '“$pkgName”',
@@ -142,29 +160,6 @@ class PackageModal {
         ],
       ),
     ).then((v) => v ?? false);
-  }
-
-  static Future<Map<String, dynamic>?> addDetail(
-    BuildContext context, {
-    required List<ItemModel> items,
-    int initialQty = 1,
-  }) {
-    final qtyCtrl = TextEditingController(text: initialQty.toString());
-    final searchCtrl = TextEditingController();
-
-    return showDialog<Map<String, dynamic>>(
-      context: context,
-      barrierColor: const Color(0x40A8A8AE),
-      builder: (_) {
-        return _AddDetailDialog(
-          items: items,
-          filteredInit: List<ItemModel>.from(items),
-          searchCtrl: searchCtrl,
-          qtyCtrl: qtyCtrl,
-          selectedItemId: null,
-        );
-      },
-    );
   }
 
   static Future<bool> confirmRemoveDetail(
@@ -195,6 +190,508 @@ class PackageModal {
   }
 }
 
+enum _DialogMode { create, edit }
+
+class _PackageFormDialog extends StatefulWidget {
+  final _DialogMode mode;
+  final TextEditingController codeCtrl;
+  final TextEditingController nameCtrl;
+  final TextEditingController priceCtrl;
+  final TextEditingController searchCtrl;
+  final ValueNotifier<bool> loading;
+  final List<ItemModel> availableItems;
+  final List<ItemModel> selectedItems;
+  final VoidCallback onSave;
+
+  const _PackageFormDialog({
+    required this.mode,
+    required this.codeCtrl,
+    required this.nameCtrl,
+    required this.priceCtrl,
+    required this.searchCtrl,
+    required this.loading,
+    required this.availableItems,
+    required this.selectedItems,
+    required this.onSave,
+  });
+
+  @override
+  State<_PackageFormDialog> createState() => _PackageFormDialogState();
+}
+
+class _PackageFormDialogState extends State<_PackageFormDialog> {
+  late List<ItemModel> _filteredItems;
+  late List<ItemModel> _selectedItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = List.from(widget.availableItems);
+    _selectedItems = List.from(widget.selectedItems);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960, maxHeight: 600),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left Panel - Available Items
+            Expanded(
+              flex: 1,
+              child: _buildLeftPanel(),
+            ),
+            // Divider
+            const VerticalDivider(
+                width: 1, thickness: 1, color: Color(0xFFEAEAEA)),
+            // Right Panel - Package Details & Selected Items
+            Expanded(
+              flex: 1,
+              child: _buildRightPanel(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeftPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.mode == _DialogMode.create
+                ? 'Create Package'
+                : 'Edit Package',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.03,
+              height: 1.2,
+              color: Color(0xFF111111),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Select items to add',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF787774),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSearchField(),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _filteredItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No items available',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _filteredItems.length,
+                    itemBuilder: (_, index) {
+                      final item = _filteredItems[index];
+                      final isSelected =
+                          _selectedItems.any((e) => e.id == item.id);
+                      return _buildItemTile(item, isSelected);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFEAEAEA)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF111111)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: widget.searchCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Search items...',
+                hintStyle:
+                    TextStyle(fontSize: 14, color: AppColors.textDisabled),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
+              onChanged: (v) {
+                final q = v.trim().toLowerCase();
+                setState(() {
+                  _filteredItems = widget.availableItems.where((item) {
+                    return item.name.toLowerCase().contains(q) ||
+                        item.itemCode.toLowerCase().contains(q);
+                  }).toList();
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemTile(ItemModel item, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFFF7F6F3) : Colors.white,
+        border: Border.all(color: const Color(0xFFEAEAEA)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              if (isSelected) {
+                _selectedItems.removeWhere((e) => e.id == item.id);
+              } else {
+                _selectedItems.add(item);
+              }
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.circle_outlined,
+                    size: 18,
+                    color: isSelected
+                        ? const Color(0xFF111111)
+                        : const Color(0xFF5C5C63),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF111111),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${item.itemCode} • Rp ${item.price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF787774),
+                          height: 1.4,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRightPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Package Details',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.03,
+              color: Color(0xFF111111),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildField('Package Code', widget.codeCtrl),
+          const SizedBox(height: 12),
+          _buildField('Package Name', widget.nameCtrl),
+          const SizedBox(height: 12),
+          _buildPriceField(),
+          const SizedBox(height: 20),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFEAEAEA)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text(
+                'Selected Items',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111111),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F6F3),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${_selectedItems.length}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF787774),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: _selectedItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No items selected',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _selectedItems.length,
+                    itemBuilder: (_, index) {
+                      final item = _selectedItems[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFFEAEAEA)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF111111),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${item.itemCode} • Rp ${item.price.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF787774),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: Color(0xFF787774),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedItems
+                                      .removeWhere((e) => e.id == item.id);
+                                });
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF787774),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                child: const Text('Cancel', style: TextStyle(fontSize: 14)),
+              ),
+              const SizedBox(width: 8),
+              ValueListenableBuilder(
+                valueListenable: widget.loading,
+                builder: (_, isLoading, __) {
+                  return FilledButton(
+                    onPressed: isLoading ? null : widget.onSave,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF111111),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFFEAEAEA),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      minimumSize: const Size(80, 40),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            widget.mode == _DialogMode.create
+                                ? 'Create'
+                                : 'Update',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.06,
+            color: Color(0xFF787774),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFEAEAEA)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 12),
+            ),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'PRICE',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.06,
+            color: Color(0xFF787774),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFEAEAEA)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              const Text(
+                'Rp ',
+                style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: widget.priceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: '0',
+                    hintStyle:
+                        TextStyle(fontSize: 14, color: AppColors.textDisabled),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF111111)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Kelas _AddDetailDialog (dipertahankan dari kode sebelumnya)
 class _AddDetailDialog extends StatefulWidget {
   final List<ItemModel> items;
   final List<ItemModel> filteredInit;
@@ -223,6 +720,17 @@ class _AddDetailDialogState extends State<_AddDetailDialog> {
     super.initState();
     _filtered = List.from(widget.filteredInit);
     _selectedId = widget.selectedItemId;
+  }
+
+  @override
+  void didUpdateWidget(covariant _AddDetailDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.filteredInit, widget.filteredInit)) {
+      _filtered = List<ItemModel>.from(widget.filteredInit);
+    }
+    if (oldWidget.selectedItemId != widget.selectedItemId) {
+      _selectedId = widget.selectedItemId;
+    }
   }
 
   @override
@@ -325,47 +833,74 @@ class _AddDetailDialogState extends State<_AddDetailDialog> {
                                   Border.all(color: const Color(0xFFEAEAEA)),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: ListTile(
-                              dense: true,
-                              leading: Radio<String>(
-                                value: item.id,
-                                groupValue: _selectedId,
-                                onChanged: (v) {
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
                                   setState(() {
-                                    _selectedId = v;
+                                    _selectedId = item.id;
                                   });
                                 },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Icon(
+                                          selected
+                                              ? Icons.check_circle_rounded
+                                              : Icons.circle_outlined,
+                                          size: 18,
+                                          color: selected
+                                              ? const Color(0xFF111111)
+                                              : const Color(0xFF5C5C63),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.name,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF111111),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${item.itemCode} • Rp ${item.price.toStringAsFixed(0)}',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF787774),
+                                                height: 1.4,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              title: Text(
-                                item.name,
-                                style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF111111)),
-                              ),
-                              subtitle: Text(
-                                '${item.itemCode} • Rp ${item.price.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF787774),
-                                    height: 1.4),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  _selectedId = item.id;
-                                });
-                              },
                             ),
                           );
                         },
                       ),
               ),
               const SizedBox(height: 16),
-              _Field(
-                label: 'QUANTITY',
-                child:
-                    _SimpleNumberField(controller: widget.qtyCtrl, hint: '1'),
-              ),
+              _buildField('QUANTITY', widget.qtyCtrl),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -414,91 +949,10 @@ class _AddDetailDialogState extends State<_AddDetailDialog> {
       ),
     );
   }
-}
 
-class _SimpleNumberField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-
-  const _SimpleNumberField({required this.controller, required this.hint});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFEAEAEA)),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle:
-              const TextStyle(fontSize: 14, color: AppColors.textDisabled),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-        style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
-      ),
-    );
-  }
-}
-
-class _RespRow extends StatelessWidget {
-  final List<Widget> children;
-  const _RespRow(this.children);
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        if (constraints.maxWidth < 400) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (int i = 0; i < children.length; i++) ...[
-                if (children[i] is! SizedBox) children[i],
-                if (i < children.length - 1 &&
-                    children[i] is! SizedBox &&
-                    children[i] is! SizedBox)
-                  const SizedBox(height: 16),
-              ],
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (int i = 0; i < children.length; i++) ...[
-              if (children[i] is! SizedBox) Expanded(child: children[i]),
-              if (i < children.length - 1 &&
-                  children[i] is! SizedBox &&
-                  children[i + 1] is! SizedBox)
-                const SizedBox(width: 16),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _Field extends StatelessWidget {
-  final String label;
-  final Widget child;
-
-  const _Field({required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
@@ -510,49 +964,57 @@ class _Field extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        child,
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFEAEAEA)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              hintText: '1',
+              hintStyle: TextStyle(fontSize: 14, color: AppColors.textDisabled),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 12),
+            ),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _CurrencyField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-
-  const _CurrencyField({required this.controller, required this.hint});
+// Kelas ConfirmContent
+class ConfirmContent extends StatelessWidget {
+  final String message;
+  const ConfirmContent({required this.message, super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFEAEAEA)),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          const Text('Rp ',
-              style: TextStyle(fontSize: 14, color: Color(0xFF787774))),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(
-                    fontSize: 14, color: AppColors.textDisabled),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.warning_amber_rounded,
+          color: Color(0xFFE53935),
+          size: 32,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          message,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF111111),
+            height: 1.6,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
