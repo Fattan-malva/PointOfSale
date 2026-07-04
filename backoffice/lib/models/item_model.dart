@@ -11,6 +11,8 @@ class ItemModel {
   final String? imageUrl;
   final bool isActive;
   final DateTime createdAt;
+  final List<ItemTaxInfo> taxes;
+  final List<ItemDiscountInfo> discounts;
 
   ItemModel({
     required this.id,
@@ -25,6 +27,8 @@ class ItemModel {
     this.imageUrl,
     this.isActive = true,
     required this.createdAt,
+    this.taxes = const [],
+    this.discounts = const [],
   });
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -45,8 +49,19 @@ class ItemModel {
           : json['createdAt'] != null
               ? DateTime.parse(json['createdAt'] as String)
               : DateTime.now(),
+      taxes: (json['Taxes'] as List<dynamic>?)
+              ?.map((e) => ItemTaxInfo.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      discounts: (json['Discounts'] as List<dynamic>?)
+              ?.map((e) => ItemDiscountInfo.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
+
+  List<String> get taxIds => taxes.map((t) => t.id).toList();
+  List<String> get discountIds => discounts.map((d) => d.id).toList();
 
   Map<String, dynamic> toJson() {
     return {
@@ -75,6 +90,8 @@ class ItemModel {
     String? imageUrl,
     bool? isActive,
     DateTime? createdAt,
+    List<ItemTaxInfo>? taxes,
+    List<ItemDiscountInfo>? discounts,
   }) {
     return ItemModel(
       id: id ?? this.id,
@@ -89,6 +106,47 @@ class ItemModel {
       imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
+      taxes: taxes ?? this.taxes,
+      discounts: discounts ?? this.discounts,
+    );
+  }
+}
+
+class ItemTaxInfo {
+  final String id;
+  final String name;
+  final double rate;
+
+  ItemTaxInfo({required this.id, required this.name, required this.rate});
+
+  factory ItemTaxInfo.fromJson(Map<String, dynamic> json) {
+    return ItemTaxInfo(
+      id: (json['TaxID'] as String?) ?? '',
+      name: (json['TaxName'] as String?) ?? '',
+      rate: (json['TaxRate'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class ItemDiscountInfo {
+  final String id;
+  final String name;
+  final String discountType;
+  final double discountValue;
+
+  ItemDiscountInfo({
+    required this.id,
+    required this.name,
+    required this.discountType,
+    required this.discountValue,
+  });
+
+  factory ItemDiscountInfo.fromJson(Map<String, dynamic> json) {
+    return ItemDiscountInfo(
+      id: (json['DiscountID'] as String?) ?? '',
+      name: (json['DiscountName'] as String?) ?? '',
+      discountType: (json['DiscountType'] as String?) ?? 'Percentage',
+      discountValue: (json['DiscountValue'] as num?)?.toDouble() ?? 0,
     );
   }
 }

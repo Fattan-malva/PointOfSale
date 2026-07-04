@@ -33,26 +33,49 @@ class MasterRepository {
     return db('Category').where('CategoryID', id).del();
   }
 
-  async findAllItem({ limit, offset } = {}) {
+  async findAllItem({ limit, offset, search, categoryId, itemType } = {}) {
     let query = db('Item')
       .leftJoin('Category', 'Item.CategoryID', 'Category.CategoryID')
       .select('Item.*', 'Category.CategoryName')
       .orderBy('Item.ItemName');
     if (limit) query = query.limit(limit);
     if (offset) query = query.offset(offset);
+    if (search) query = query.where(function () {
+      this.where('Item.ItemName', 'like', `%${search}%`)
+          .orWhere('Item.ItemCode', 'like', `%${search}%`);
+    });
+    if (categoryId) query = query.where('Item.CategoryID', categoryId);
+    if (itemType) query = query.where('Item.ItemType', itemType);
     return query;
   }
 
-  async countAllItem() {
-    return db('Item').count('ItemID as total').first();
+  async countAllItem({ search, categoryId, itemType } = {}) {
+    let query = db('Item');
+    if (search) query = query.where(function () {
+      this.where('ItemName', 'like', `%${search}%`)
+          .orWhere('ItemCode', 'like', `%${search}%`);
+    });
+    if (categoryId) query = query.where('CategoryID', categoryId);
+    if (itemType) query = query.where('ItemType', itemType);
+    return query.count('ItemID as total').first();
   }
 
   async findItemById(id) {
-    return db('Item')
+    const item = await db('Item')
       .leftJoin('Category', 'Item.CategoryID', 'Category.CategoryID')
       .where('Item.ItemID', id)
       .select('Item.*', 'Category.CategoryName')
       .first();
+    if (!item) return null;
+    const taxes = await db('ItemTax')
+      .leftJoin('Tax', 'ItemTax.TaxID', 'Tax.TaxID')
+      .where('ItemTax.ItemID', id)
+      .select('Tax.TaxID', 'Tax.TaxName', 'Tax.TaxRate');
+    const discounts = await db('ItemDiscount')
+      .leftJoin('Discount', 'ItemDiscount.DiscountID', 'Discount.DiscountID')
+      .where('ItemDiscount.ItemID', id)
+      .select('Discount.DiscountID', 'Discount.DiscountName', 'Discount.DiscountType', 'Discount.DiscountValue');
+    return { ...item, Taxes: taxes, Discounts: discounts };
   }
 
   async findItemsByCategoryId(categoryId) {
@@ -73,6 +96,40 @@ class MasterRepository {
 
   async deleteItem(id) {
     return db('Item').where('ItemID', id).del();
+  }
+
+  async findTaxesByItemId(itemId) {
+    return db('ItemTax')
+      .leftJoin('Tax', 'ItemTax.TaxID', 'Tax.TaxID')
+      .where('ItemTax.ItemID', itemId)
+      .select('Tax.TaxID', 'Tax.TaxName', 'Tax.TaxRate', 'Tax.IsActive');
+  }
+
+  async assignTaxToItem(itemId, taxId) {
+    const id = uuidv7();
+    await db('ItemTax').insert({ ItemTaxID: id, ItemID: itemId, TaxID: taxId });
+    return { ItemTaxID: id, ItemID: itemId, TaxID: taxId };
+  }
+
+  async removeTaxFromItem(itemId, taxId) {
+    return db('ItemTax').where('ItemID', itemId).andWhere('TaxID', taxId).del();
+  }
+
+  async findDiscountsByItemId(itemId) {
+    return db('ItemDiscount')
+      .leftJoin('Discount', 'ItemDiscount.DiscountID', 'Discount.DiscountID')
+      .where('ItemDiscount.ItemID', itemId)
+      .select('Discount.DiscountID', 'Discount.DiscountName', 'Discount.DiscountType', 'Discount.DiscountValue', 'Discount.IsActive');
+  }
+
+  async assignDiscountToItem(itemId, discountId) {
+    const id = uuidv7();
+    await db('ItemDiscount').insert({ ItemDiscountID: id, ItemID: itemId, DiscountID: discountId });
+    return { ItemDiscountID: id, ItemID: itemId, DiscountID: discountId };
+  }
+
+  async removeDiscountFromItem(itemId, discountId) {
+    return db('ItemDiscount').where('ItemID', itemId).andWhere('DiscountID', discountId).del();
   }
 
   async findAllModifier({ limit, offset } = {}) {

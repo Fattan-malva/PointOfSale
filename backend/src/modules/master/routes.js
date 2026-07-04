@@ -70,10 +70,18 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/items', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      const { limit, offset } = request.query;
+      const { limit, offset, search, CategoryID, ItemType } = request.query;
+      const params = {
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+        search,
+        categoryId: CategoryID,
+        itemType: ItemType,
+      };
+      const countParams = { search, categoryId: CategoryID, itemType: ItemType };
       const [data, { total }] = await Promise.all([
-        service.getAllItem({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
-        service.countAllItem(),
+        service.getAllItem(params),
+        service.countAllItem(countParams),
       ]);
       return { data, total };
     },
@@ -252,6 +260,84 @@ async function masterRoutes(fastify, opts) {
     handler: async (request, reply) => {
       await service.removeMediaFromItem(request.params.id, request.params.mediaId);
       return { message: 'Media removed' };
+    },
+  });
+
+  fastify.get('/items/:id/taxes', {
+    schema: { params: idParam },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      return { data: await service.getTaxesByItemId(request.params.id) };
+    },
+  });
+
+  fastify.post('/items/:id/taxes/:taxId', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id', 'taxId'],
+        properties: { id: { type: 'string', format: 'uuid' }, taxId: { type: 'string', format: 'uuid' } },
+      },
+    },
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
+    handler: async (request, reply) => {
+      await service.assignTaxToItem(request.params.id, request.params.taxId);
+      reply.code(201);
+      return { message: 'Tax assigned' };
+    },
+  });
+
+  fastify.delete('/items/:id/taxes/:taxId', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id', 'taxId'],
+        properties: { id: { type: 'string', format: 'uuid' }, taxId: { type: 'string', format: 'uuid' } },
+      },
+    },
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
+    handler: async (request, reply) => {
+      await service.removeTaxFromItem(request.params.id, request.params.taxId);
+      return { message: 'Tax removed' };
+    },
+  });
+
+  fastify.get('/items/:id/discounts', {
+    schema: { params: idParam },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      return { data: await service.getDiscountsByItemId(request.params.id) };
+    },
+  });
+
+  fastify.post('/items/:id/discounts/:discountId', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id', 'discountId'],
+        properties: { id: { type: 'string', format: 'uuid' }, discountId: { type: 'string', format: 'uuid' } },
+      },
+    },
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
+    handler: async (request, reply) => {
+      await service.assignDiscountToItem(request.params.id, request.params.discountId);
+      reply.code(201);
+      return { message: 'Discount assigned' };
+    },
+  });
+
+  fastify.delete('/items/:id/discounts/:discountId', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id', 'discountId'],
+        properties: { id: { type: 'string', format: 'uuid' }, discountId: { type: 'string', format: 'uuid' } },
+      },
+    },
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
+    handler: async (request, reply) => {
+      await service.removeDiscountFromItem(request.params.id, request.params.discountId);
+      return { message: 'Discount removed' };
     },
   });
 

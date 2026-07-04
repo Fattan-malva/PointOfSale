@@ -29,6 +29,19 @@ const app = Fastify({
 
 app.register(fastifyCors, {
   origin: process.env.CORS_ORIGIN || '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  maxAge: 86400,
+});
+
+app.addContentTypeParser('application/json', { parseAs: 'string', bodyLimit: 1048576 }, function (req, body, done) {
+  try {
+    const parsed = body === '' || body === null || body === undefined ? {} : JSON.parse(body);
+    done(null, parsed);
+  } catch (err) {
+    err.statusCode = 400;
+    done(err, undefined);
+  }
 });
 
 app.register(fastifyJwt, {

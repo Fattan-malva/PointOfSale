@@ -4,7 +4,9 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../core/widgets/app_text_field.dart';
+import '../../models/item_model.dart';
 import 'package_provider.dart';
+import '../items/repositories/item_repository.dart';
 
 class PackageScreen extends ConsumerStatefulWidget {
   const PackageScreen({super.key});
@@ -229,45 +231,98 @@ class _PackageScreenState extends ConsumerState<PackageScreen> {
     );
   }
 
-  void _showAddDetailDialog(BuildContext context) {
+  void _showAddDetailDialog(BuildContext context) async {
     final qtyCtrl = TextEditingController(text: '1');
+    final searchCtrl = TextEditingController();
     String? selectedItemId;
-    final state = ref.read(packageProvider);
-    final packageId = state.selectedPackageId;
+    final packageId = ref.read(packageProvider).selectedPackageId;
+
+    List<ItemModel> items = ref.read(packageProvider).availableItems;
+    if (items.isEmpty) {
+      items = await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+    }
+    List<ItemModel> filteredItems = List.from(items);
+
+    if (!context.mounted) return;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Item to Package'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Item', border: OutlineInputBorder()),
-              items: state.availableItems
-                  .map((item) => DropdownMenuItem(value: item.id, child: Text(item.name)))
-                  .toList(),
-              onChanged: (v) => selectedItemId = v,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Add Item to Package'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Search items...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                  ),
+                  onChanged: (v) => setDialogState(() {
+                    filteredItems = items.where((item) =>
+                      item.name.toLowerCase().contains(v.toLowerCase()) ||
+                      item.itemCode.toLowerCase().contains(v.toLowerCase())
+                    ).toList();
+                  }),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 200,
+                  child: filteredItems.isEmpty
+                      ? Center(child: Text('No items found',
+                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary)))
+                      : ListView.builder(
+                          itemCount: filteredItems.length,
+                          itemBuilder: (_, i) {
+                            final item = filteredItems[i];
+                            final isSelected = selectedItemId == item.id;
+                            return Card(
+                              color: isSelected ? AppColors.accentSoft : null,
+                              child: ListTile(
+                                dense: true,
+                                leading: Radio<String>(
+                                  value: item.id,
+                                  groupValue: selectedItemId,
+                                  onChanged: (v) => setDialogState(() => selectedItemId = v),
+                                ),
+                                title: Text(item.name, style: const TextStyle(fontSize: 14)),
+                                subtitle: Text('${item.itemCode} • Rp ${_fmt(item.price)}',
+                                    style: AppTypography.caption),
+                                onTap: () => setDialogState(() => selectedItemId = item.id),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height: 12),
+                AppTextField(controller: qtyCtrl, label: 'Quantity', keyboardType: TextInputType.number),
+              ],
             ),
-            const SizedBox(height: 12),
-            AppTextField(controller: qtyCtrl, label: 'Quantity', keyboardType: TextInputType.number),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (packageId == null || selectedItemId == null || qtyCtrl.text.isEmpty) return;
+                await ref.read(packageProvider.notifier).addDetail(
+                  packageId,
+                  selectedItemId!,
+                  int.tryParse(qtyCtrl.text) ?? 1,
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Save'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (packageId == null || selectedItemId == null || qtyCtrl.text.isEmpty) return;
-              await ref.read(packageProvider.notifier).addDetail(
-                packageId,
-                selectedItemId!,
-                int.tryParse(qtyCtrl.text) ?? 1,
-              );
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }

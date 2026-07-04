@@ -31,6 +31,10 @@ class MasterService {
 
   async deleteCategory(id) {
     await this.getCategoryById(id);
+    const items = await this.repo.findItemsByCategoryId(id);
+    if (items.length > 0) {
+      throw new Error(`Cannot delete category: ${items.length} item(s) are still using this category`);
+    }
     return this.repo.deleteCategory(id);
   }
 
@@ -38,8 +42,8 @@ class MasterService {
     return this.repo.findAllItem(params);
   }
 
-  async countAllItem() {
-    return this.repo.countAllItem();
+  async countAllItem(params = {}) {
+    return this.repo.countAllItem(params);
   }
 
   async getItemById(id) {
@@ -83,6 +87,40 @@ class MasterService {
       RecordID: id,
       OldValue: { ItemCode: old.ItemCode, ItemName: old.ItemName },
     });
+  }
+
+  async getTaxesByItemId(itemId) {
+    await this.getItemById(itemId);
+    return this.repo.findTaxesByItemId(itemId);
+  }
+
+  async assignTaxToItem(itemId, taxId) {
+    await this.getItemById(itemId);
+    const tax = await this.repo.findTaxById(taxId);
+    if (!tax) throw new Error('Tax not found');
+    return this.repo.assignTaxToItem(itemId, taxId);
+  }
+
+  async removeTaxFromItem(itemId, taxId) {
+    await this.getItemById(itemId);
+    return this.repo.removeTaxFromItem(itemId, taxId);
+  }
+
+  async getDiscountsByItemId(itemId) {
+    await this.getItemById(itemId);
+    return this.repo.findDiscountsByItemId(itemId);
+  }
+
+  async assignDiscountToItem(itemId, discountId) {
+    await this.getItemById(itemId);
+    const discount = await this.repo.findDiscountById(discountId);
+    if (!discount) throw new Error('Discount not found');
+    return this.repo.assignDiscountToItem(itemId, discountId);
+  }
+
+  async removeDiscountFromItem(itemId, discountId) {
+    await this.getItemById(itemId);
+    return this.repo.removeDiscountFromItem(itemId, discountId);
   }
 
   async getAllModifier(params = {}) {

@@ -4,8 +4,9 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../core/widgets/app_text_field.dart';
-import '../categories/category_provider.dart';
+import '../../models/item_model.dart';
 import 'item_provider.dart';
+import 'repositories/item_repository.dart';
 
 class ItemScreen extends ConsumerStatefulWidget {
   const ItemScreen({super.key});
@@ -99,7 +100,9 @@ class _ItemScreenState extends ConsumerState<ItemScreen> {
                                 title: Text(item.name),
                                 subtitle: Text(
                                   '${item.itemCode} • ${item.categoryName ?? ''} • Rp ${_fmt(item.price)}'
-                                  '${item.costPrice != null ? ' (Cost: Rp ${_fmt(item.costPrice!)})' : ''}',
+                                  '${item.costPrice != null ? ' (Cost: Rp ${_fmt(item.costPrice!)})' : ''}'
+                                  '${item.taxes.isNotEmpty ? ' • Tax: ${item.taxes.map((t) => t.name).join(', ')}' : ''}'
+                                  '${item.discounts.isNotEmpty ? ' • Disc: ${item.discounts.length}' : ''}',
                                   style: AppTypography.caption,
                                 ),
                                 trailing: Row(
@@ -145,117 +148,192 @@ class _ItemScreenState extends ConsumerState<ItemScreen> {
     final priceCtrl = TextEditingController();
     final costCtrl = TextEditingController();
     String? categoryId;
-    final catState = ref.read(categoryProvider);
+    final state = ref.read(itemProvider);
+    Set<String> selectedTaxes = {};
+    Set<String> selectedDiscounts = {};
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Item'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(controller: codeCtrl, label: 'Item Code'),
-              const SizedBox(height: 12),
-              AppTextField(controller: nameCtrl, label: 'Item Name'),
-              const SizedBox(height: 12),
-              AppTextField(controller: descCtrl, label: 'Description (optional)'),
-              const SizedBox(height: 12),
-              AppTextField(controller: priceCtrl, label: 'Price', keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              AppTextField(controller: costCtrl, label: 'Cost Price (optional)', keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                items: catState.categories
-                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                    .toList(),
-                onChanged: (v) => categoryId = v,
-              ),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Add Item'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextField(controller: codeCtrl, label: 'Item Code'),
+                const SizedBox(height: 12),
+                AppTextField(controller: nameCtrl, label: 'Item Name'),
+                const SizedBox(height: 12),
+                AppTextField(controller: descCtrl, label: 'Description'),
+                const SizedBox(height: 12),
+                AppTextField(controller: priceCtrl, label: 'Price', keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                AppTextField(controller: costCtrl, label: 'Cost Price', keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                  items: state.categories
+                      .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => categoryId = v),
+                ),
+                if (state.allTaxes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('Taxes', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+                  ...state.allTaxes.map((tax) => CheckboxListTile(
+                    dense: true,
+                    title: Text('${tax.name} (${tax.rate}%)'),
+                    value: selectedTaxes.contains(tax.id),
+                    onChanged: (v) => setDialogState(() {
+                      if (v == true) { selectedTaxes.add(tax.id); } else { selectedTaxes.remove(tax.id); }
+                    }),
+                  )),
+                ],
+                if (state.allDiscounts.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Discounts', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+                  ...state.allDiscounts.map((d) => CheckboxListTile(
+                    dense: true,
+                    title: Text('${d.name} (${d.discountType == 'Percentage' ? '${d.discountValue}%' : 'Rp ${_fmt(d.discountValue)}'})'),
+                    value: selectedDiscounts.contains(d.id),
+                    onChanged: (v) => setDialogState(() {
+                      if (v == true) { selectedDiscounts.add(d.id); } else { selectedDiscounts.remove(d.id); }
+                    }),
+                  )),
+                ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (codeCtrl.text.isEmpty || nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
+                final data = <String, dynamic>{
+                  'ItemCode': codeCtrl.text,
+                  'ItemName': nameCtrl.text,
+                  'Price': double.tryParse(priceCtrl.text) ?? 0,
+                  'ItemType': 'Product',
+                };
+                if (descCtrl.text.isNotEmpty) data['Description'] = descCtrl.text;
+                if (costCtrl.text.isNotEmpty) data['CostPrice'] = double.tryParse(costCtrl.text);
+                if (categoryId != null) data['CategoryID'] = categoryId;
+                await ref.read(itemProvider.notifier).createItem(
+                  data,
+                  taxIds: selectedTaxes.toList(),
+                  discountIds: selectedDiscounts.toList(),
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (codeCtrl.text.isEmpty || nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
-              final data = <String, dynamic>{
-                'ItemCode': codeCtrl.text,
-                'ItemName': nameCtrl.text,
-                'Price': double.tryParse(priceCtrl.text) ?? 0,
-                'ItemType': 'Product',
-              };
-              if (descCtrl.text.isNotEmpty) data['Description'] = descCtrl.text;
-              if (costCtrl.text.isNotEmpty) data['CostPrice'] = double.tryParse(costCtrl.text);
-              if (categoryId != null) data['CategoryID'] = categoryId;
-              await ref.read(itemProvider.notifier).createItem(data);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
 
-  void _showEditDialog(BuildContext context, dynamic item) {
-    final codeCtrl = TextEditingController(text: item.itemCode);
-    final nameCtrl = TextEditingController(text: item.name);
-    final descCtrl = TextEditingController(text: item.description ?? '');
-    final priceCtrl = TextEditingController(text: item.price.toString());
-    final costCtrl = TextEditingController(text: item.costPrice?.toString() ?? '');
-    String? categoryId = item.categoryId;
-    final catState = ref.read(categoryProvider);
+  void _showEditDialog(BuildContext context, dynamic item) async {
+    final repo = ref.read(itemRepositoryProvider);
+    final state = ref.read(itemProvider);
+
+    ItemModel? fullItem;
+    try {
+      fullItem = await repo.getItem(item.id);
+    } catch (_) {}
+
+    if (!context.mounted) return;
+
+    final codeCtrl = TextEditingController(text: fullItem?.itemCode ?? item.itemCode);
+    final nameCtrl = TextEditingController(text: fullItem?.name ?? item.name);
+    final descCtrl = TextEditingController(text: fullItem?.description ?? item.description ?? '');
+    final priceCtrl = TextEditingController(text: (fullItem?.price ?? item.price).toString());
+    final costCtrl = TextEditingController(text: (fullItem?.costPrice ?? item.costPrice)?.toString() ?? '');
+    String? categoryId = fullItem?.categoryId ?? item.categoryId;
+    Set<String> selectedTaxes = Set.from(fullItem?.taxIds ?? []);
+    Set<String> selectedDiscounts = Set.from(fullItem?.discountIds ?? []);
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Item'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(controller: codeCtrl, label: 'Item Code'),
-              const SizedBox(height: 12),
-              AppTextField(controller: nameCtrl, label: 'Item Name'),
-              const SizedBox(height: 12),
-              AppTextField(controller: descCtrl, label: 'Description'),
-              const SizedBox(height: 12),
-              AppTextField(controller: priceCtrl, label: 'Price', keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              AppTextField(controller: costCtrl, label: 'Cost Price', keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: categoryId,
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                items: catState.categories
-                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                    .toList(),
-                onChanged: (v) => categoryId = v,
-              ),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Edit Item'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextField(controller: codeCtrl, label: 'Item Code'),
+                const SizedBox(height: 12),
+                AppTextField(controller: nameCtrl, label: 'Item Name'),
+                const SizedBox(height: 12),
+                AppTextField(controller: descCtrl, label: 'Description'),
+                const SizedBox(height: 12),
+                AppTextField(controller: priceCtrl, label: 'Price', keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                AppTextField(controller: costCtrl, label: 'Cost Price', keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: categoryId,
+                  decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                  items: state.categories
+                      .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => categoryId = v),
+                ),
+                if (state.allTaxes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('Taxes', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+                  ...state.allTaxes.map((tax) => CheckboxListTile(
+                    dense: true,
+                    title: Text('${tax.name} (${tax.rate}%)'),
+                    value: selectedTaxes.contains(tax.id),
+                    onChanged: (v) => setDialogState(() {
+                      if (v == true) { selectedTaxes.add(tax.id); } else { selectedTaxes.remove(tax.id); }
+                    }),
+                  )),
+                ],
+                if (state.allDiscounts.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Discounts', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+                  ...state.allDiscounts.map((d) => CheckboxListTile(
+                    dense: true,
+                    title: Text('${d.name} (${d.discountType == 'Percentage' ? '${d.discountValue}%' : 'Rp ${_fmt(d.discountValue)}'})'),
+                    value: selectedDiscounts.contains(d.id),
+                    onChanged: (v) => setDialogState(() {
+                      if (v == true) { selectedDiscounts.add(d.id); } else { selectedDiscounts.remove(d.id); }
+                    }),
+                  )),
+                ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (codeCtrl.text.isEmpty || nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
+                final data = <String, dynamic>{
+                  'ItemCode': codeCtrl.text,
+                  'ItemName': nameCtrl.text,
+                  'Price': double.tryParse(priceCtrl.text) ?? 0,
+                };
+                if (descCtrl.text.isNotEmpty) data['Description'] = descCtrl.text;
+                if (costCtrl.text.isNotEmpty) data['CostPrice'] = double.tryParse(costCtrl.text);
+                if (categoryId != null) data['CategoryID'] = categoryId;
+                await ref.read(itemProvider.notifier).updateItem(
+                  (fullItem?.id ?? item.id), data,
+                  taxIds: selectedTaxes.toList(),
+                  discountIds: selectedDiscounts.toList(),
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Update'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (codeCtrl.text.isEmpty || nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
-              final data = <String, dynamic>{
-                'ItemCode': codeCtrl.text,
-                'ItemName': nameCtrl.text,
-                'Price': double.tryParse(priceCtrl.text) ?? 0,
-              };
-              if (descCtrl.text.isNotEmpty) data['Description'] = descCtrl.text;
-              if (costCtrl.text.isNotEmpty) data['CostPrice'] = double.tryParse(costCtrl.text);
-              if (categoryId != null) data['CategoryID'] = categoryId;
-              await ref.read(itemProvider.notifier).updateItem(item.id, data);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Update'),
-          ),
-        ],
       ),
     );
   }

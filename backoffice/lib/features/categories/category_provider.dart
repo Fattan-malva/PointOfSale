@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/network/api_exception.dart';
 import '../../models/category_model.dart';
 import 'repositories/category_repository.dart';
 
@@ -37,57 +39,88 @@ final categoryProvider = StateNotifierProvider<CategoryNotifier, CategoryState>(
 
 class CategoryNotifier extends StateNotifier<CategoryState> {
   final CategoryRepository _repository;
+  Timer? _debounce;
+  int _queryId = 0;
 
   CategoryNotifier(this._repository) : super(CategoryState()) {
     loadCategories();
   }
 
-  Future<void> loadCategories() async {
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> loadCategories({String? query}) async {
+    final qId = ++_queryId;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final categories = await _repository.getCategories(search: state.searchQuery);
-      state = state.copyWith(categories: categories, isLoading: false);
+      final categories = await _repository.getCategories(search: query ?? state.searchQuery);
+      if (qId == _queryId) {
+        state = state.copyWith(categories: categories, isLoading: false);
+      }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Gagal memuat kategori: $e');
+      if (qId == _queryId) {
+        state = state.copyWith(isLoading: false, error: _fmtErr(e));
+      }
     }
   }
 
   void setSearch(String query) {
     state = state.copyWith(searchQuery: query);
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      loadCategories(query: query.isEmpty ? null : query);
+    });
+  }
+
+  void clearSearch() {
+    _debounce?.cancel();
+    state = state.copyWith(searchQuery: null);
     loadCategories();
   }
 
-  Future<bool> createCategory(Map<String, dynamic> data) async {
+  /// Returns null on success, error message on failure.
+  Future<String?> createCategory(Map<String, dynamic> data) async {
     try {
       await _repository.createCategory(data);
       await loadCategories();
-      return true;
+      return null;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal membuat kategori: $e');
-      return false;
+      final msg = _fmtErr(e);
+      state = state.copyWith(error: msg);
+      return msg;
     }
   }
 
-  Future<bool> updateCategory(String id, Map<String, dynamic> data) async {
+  Future<String?> updateCategory(String id, Map<String, dynamic> data) async {
     try {
       await _repository.updateCategory(id, data);
       await loadCategories();
-      return true;
+      return null;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal memperbarui kategori: $e');
-      return false;
+      final msg = _fmtErr(e);
+      state = state.copyWith(error: msg);
+      return msg;
     }
   }
 
-  Future<bool> deleteCategory(String id) async {
+  Future<String?> deleteCategory(String id) async {
     try {
       await _repository.deleteCategory(id);
       await loadCategories();
-      return true;
+      return null;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal menghapus kategori: $e');
-      return false;
+      final msg = _fmtErr(e);
+      state = state.copyWith(error: msg);
+      return msg;
     }
+  }
+
+  String _fmtErr(Object e) {
+    if (e is ApiException) return e.message;
+    return e.toString();
   }
 
   void clearError() {

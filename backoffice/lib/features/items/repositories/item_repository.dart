@@ -53,4 +53,32 @@ class ItemRepository {
   Future<void> removeModifier(String itemId, String modifierId) async {
     await _api.delete('/items/$itemId/modifiers/$modifierId');
   }
+
+  Future<List<Map<String, dynamic>>> getItemTaxes(String itemId) async {
+    final res = await _api.get('/items/$itemId/taxes');
+    final data = res.data['data'] as List<dynamic>? ?? [];
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> assignTaxToItem(String itemId, String taxId) async {
+    await _api.post('/items/$itemId/taxes/$taxId');
+  }
+
+  Future<void> removeTaxFromItem(String itemId, String taxId) async {
+    await _api.delete('/items/$itemId/taxes/$taxId');
+  }
+
+  Future<List<Map<String, dynamic>>> getItemDiscounts(String itemId) async {
+    final res = await _api.get('/items/$itemId/discounts');
+    final data = res.data['data'] as List<dynamic>? ?? [];
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> assignDiscountToItem(String itemId, String discountId) async {
+    await _api.post('/items/$itemId/discounts/$discountId');
+  }
+
+  Future<void> removeDiscountFromItem(String itemId, String discountId) async {
+    await _api.delete('/items/$itemId/discounts/$discountId');
+  }
 }
