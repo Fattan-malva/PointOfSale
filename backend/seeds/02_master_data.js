@@ -145,9 +145,37 @@ exports.seed = async (knex) => {
       { ItemModifierID: uuidv7(), ItemID: itemMap['KOP-003'], ModifierID: modTopping, SortOrder: 2 },
     ]);
 
+    // Assign some items to main branch (branch-specific items)
+    // Items without assignments are global (available to all branches)
+    await trx('ItemBranch').insert([
+      // Makanan - only some are branch-specific
+      { ItemBranchID: uuidv7(), ItemID: itemMap['MKN-001'], BranchID: BRANCH_ID, IsAvailable: true },
+      { ItemBranchID: uuidv7(), ItemID: itemMap['MKN-002'], BranchID: BRANCH_ID, IsAvailable: true },
+      { ItemBranchID: uuidv7(), ItemID: itemMap['MKN-003'], BranchID: BRANCH_ID, IsAvailable: true },
+      // MKN-004, MKN-005, MKN-006 are global (no assignment)
+
+      // Minuman - mix of branch-specific and global
+      { ItemBranchID: uuidv7(), ItemID: itemMap['MIN-001'], BranchID: BRANCH_ID, IsAvailable: true },
+      { ItemBranchID: uuidv7(), ItemID: itemMap['MIN-002'], BranchID: BRANCH_ID, IsAvailable: true },
+      // MIN-003, MIN-004, MIN-005 are global
+
+      // Snack - all global (no assignments)
+
+      // Dessert - some branch-specific
+      { ItemBranchID: uuidv7(), ItemID: itemMap['DST-001'], BranchID: BRANCH_ID, IsAvailable: true },
+      { ItemBranchID: uuidv7(), ItemID: itemMap['DST-002'], BranchID: BRANCH_ID, IsAvailable: false }, // Available but marked as unavailable
+      // DST-003 is global
+
+      // Kopi - all branch-specific
+      { ItemBranchID: uuidv7(), ItemID: itemMap['KOP-001'], BranchID: BRANCH_ID, IsAvailable: true },
+      { ItemBranchID: uuidv7(), ItemID: itemMap['KOP-002'], BranchID: BRANCH_ID, IsAvailable: true },
+      { ItemBranchID: uuidv7(), ItemID: itemMap['KOP-003'], BranchID: BRANCH_ID, IsAvailable: true },
+    ]);
+
     console.log('02_master_data: Master data seeded successfully');
     console.log(`  Categories: 6, Items: ${items.length}, Tax: 1, Discount: 3`);
     console.log(`  Voucher: 2, PaymentMethods: 5, Shifts: 2, Tables: ${tables.length}`);
     console.log('  Modifiers: 4, ModifierOptions: 12, ItemModifiers: 15');
+    console.log('  ItemBranch: 11 (mix of branch-specific and global items)');
   });
 };

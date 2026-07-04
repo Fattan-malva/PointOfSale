@@ -5,6 +5,7 @@ import '../../models/item_model.dart';
 import '../../models/category_model.dart';
 import '../../models/tax_model.dart';
 import '../../models/discount_model.dart';
+import '../../models/branch_model.dart';
 
 class ItemModal {
   static Future<Map<String, dynamic>?> create(
@@ -12,6 +13,7 @@ class ItemModal {
     required List<CategoryModel> categories,
     required List<TaxModel> allTaxes,
     required List<DiscountModel> allDiscounts,
+    required List<BranchModel> allBranches,
   }) {
     final codeCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
@@ -22,6 +24,7 @@ class ItemModal {
     String? categoryId;
     final taxIds = <String>{};
     final discountIds = <String>{};
+    final branchIds = <String>{};
 
     return AppModal.show<Map<String, dynamic>>(context, AppModalConfig(
       title: 'Create Item',
@@ -42,6 +45,7 @@ class ItemModal {
           'CategoryID': categoryId,
           'taxIds': taxIds.toList(),
           'discountIds': discountIds.toList(),
+          'branchIds': branchIds.toList(),
         });
       },
       fields: [
@@ -78,6 +82,14 @@ class ItemModal {
                   : '${d.name} (Rp ${d.discountValue.toStringAsFixed(0)})',
             )).toList(),
             selected: discountIds,
+          ),
+        ],
+        if (allBranches.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _buildCheckboxGroup(
+            label: 'Available Branches',
+            items: allBranches.map((b) => _CheckItem(b.id, b.name)).toList(),
+            selected: branchIds,
           ),
         ],
       ],

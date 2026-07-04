@@ -2,15 +2,24 @@ const db = require('../../db');
 const uuidv7 = require('../../helpers/uuidv7');
 
 class MasterRepository {
-  async findAllCategory({ limit, offset } = {}) {
+  async findAllCategory({ limit, offset, search } = {}) {
     let query = db('Category').select('*').orderBy('SortOrder');
+    if (search) query = query.where(function () {
+      this.where('CategoryName', 'like', `%${search}%`)
+          .orWhere('Description', 'like', `%${search}%`);
+    });
     if (limit) query = query.limit(limit);
     if (offset) query = query.offset(offset);
     return query;
   }
 
-  async countAllCategory() {
-    return db('Category').count('CategoryID as total').first();
+  async countAllCategory({ search } = {}) {
+    let query = db('Category');
+    if (search) query = query.where(function () {
+      this.where('CategoryName', 'like', `%${search}%`)
+          .orWhere('Description', 'like', `%${search}%`);
+    });
+    return query.count('CategoryID as total').first();
   }
 
   async findCategoryById(id) {
@@ -19,6 +28,8 @@ class MasterRepository {
 
   async createCategory(data) {
     data.CategoryID = uuidv7();
+    const maxSort = await db('Category').max('SortOrder').first();
+    data.SortOrder = (maxSort?.SortOrder || 0) + 1;
     await db('Category').insert(data);
     return this.findCategoryById(data.CategoryID);
   }
@@ -33,11 +44,22 @@ class MasterRepository {
     return db('Category').where('CategoryID', id).del();
   }
 
-  async findAllItem({ limit, offset, search, categoryId, itemType } = {}) {
+  async findAllItem({ limit, offset, search, categoryId, itemType, branchId, includeGlobal = true } = {}) {
     let query = db('Item')
       .leftJoin('Category', 'Item.CategoryID', 'Category.CategoryID')
       .select('Item.*', 'Category.CategoryName')
       .orderBy('Item.ItemName');
+
+    if (branchId) {
+      query = query
+        .leftJoin('ItemBranch as ib', 'Item.ItemID', 'ib.ItemID')
+        .where(function () {
+          this.where('ib.BranchID', branchId);
+          if (includeGlobal) this.orWhereNotExists(db('ItemBranch').select('*').whereRaw('ItemBranch.ItemID = Item.ItemID'));
+        })
+        .groupBy('Item.ItemID', 'Category.CategoryName');
+    }
+
     if (limit) query = query.limit(limit);
     if (offset) query = query.offset(offset);
     if (search) query = query.where(function () {
@@ -49,8 +71,16 @@ class MasterRepository {
     return query;
   }
 
-  async countAllItem({ search, categoryId, itemType } = {}) {
+  async countAllItem({ search, categoryId, itemType, branchId, includeGlobal = true } = {}) {
     let query = db('Item');
+    if (branchId) {
+      query = query
+        .leftJoin('ItemBranch as ib', 'Item.ItemID', 'ib.ItemID')
+        .where(function () {
+          this.where('ib.BranchID', branchId);
+          if (includeGlobal) this.orWhereNotExists(db('ItemBranch').select('*').whereRaw('ItemBranch.ItemID = Item.ItemID'));
+        });
+    }
     if (search) query = query.where(function () {
       this.where('ItemName', 'like', `%${search}%`)
           .orWhere('ItemCode', 'like', `%${search}%`);
@@ -75,7 +105,11 @@ class MasterRepository {
       .leftJoin('Discount', 'ItemDiscount.DiscountID', 'Discount.DiscountID')
       .where('ItemDiscount.ItemID', id)
       .select('Discount.DiscountID', 'Discount.DiscountName', 'Discount.DiscountType', 'Discount.DiscountValue');
-    return { ...item, Taxes: taxes, Discounts: discounts };
+    const branches = await db('ItemBranch')
+      .leftJoin('Branch', 'ItemBranch.BranchID', 'Branch.BranchID')
+      .where('ItemBranch.ItemID', id)
+      .select('Branch.BranchID', 'Branch.BranchCode', 'Branch.BranchName', 'ItemBranch.IsAvailable');
+    return { ...item, Taxes: taxes, Discounts: discounts, Branches: branches };
   }
 
   async findItemsByCategoryId(categoryId) {
@@ -505,6 +539,23 @@ class MasterRepository {
 
   async removeMediaFromItem(itemId, mediaId) {
     return db('ItemMedia').where({ ItemID: itemId, MediaID: mediaId }).del();
+  }
+
+  async findBranchesByItemId(itemId) {
+    return db('ItemBranch')
+      .leftJoin('Branch', 'ItemBranch.BranchID', 'Branch.BranchID')
+      .where('ItemBranch.ItemID', itemId)
+      .select('Branch.BranchID', 'Branch.BranchCode', 'Branch.BranchName', 'Branch.IsActive', 'ItemBranch.IsAvailable');
+  }
+
+  async assignBranchToItem(itemId, branchId) {
+    const id = uuidv7();
+    await db('ItemBranch').insert({ ItemBranchID: id, ItemID: itemId, BranchID: branchId, IsAvailable: true });
+    return { ItemBranchID: id, ItemID: itemId, BranchID: branchId };
+  }
+
+  async removeBranchFromItem(itemId, branchId) {
+    return db('ItemBranch').where('ItemID', itemId).andWhere('BranchID', branchId).del();
   }
 }
 

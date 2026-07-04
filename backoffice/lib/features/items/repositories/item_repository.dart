@@ -81,4 +81,18 @@ class ItemRepository {
   Future<void> removeDiscountFromItem(String itemId, String discountId) async {
     await _api.delete('/items/$itemId/discounts/$discountId');
   }
+
+  Future<List<Map<String, dynamic>>> getItemBranches(String itemId) async {
+    final res = await _api.get('/items/$itemId/branches');
+    final data = res.data['data'] as List<dynamic>? ?? [];
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> assignBranchToItem(String itemId, String branchId) async {
+    await _api.post('/items/$itemId/branches/$branchId');
+  }
+
+  Future<void> removeBranchFromItem(String itemId, String branchId) async {
+    await _api.delete('/items/$itemId/branches/$branchId');
+  }
 }

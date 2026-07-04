@@ -13,6 +13,7 @@ class ItemModel {
   final DateTime createdAt;
   final List<ItemTaxInfo> taxes;
   final List<ItemDiscountInfo> discounts;
+  final List<ItemBranchInfo> branches;
 
   ItemModel({
     required this.id,
@@ -29,6 +30,7 @@ class ItemModel {
     required this.createdAt,
     this.taxes = const [],
     this.discounts = const [],
+    this.branches = const [],
   });
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -57,11 +59,16 @@ class ItemModel {
               ?.map((e) => ItemDiscountInfo.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      branches: (json['Branches'] as List<dynamic>?)
+              ?.map((e) => ItemBranchInfo.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
   List<String> get taxIds => taxes.map((t) => t.id).toList();
   List<String> get discountIds => discounts.map((d) => d.id).toList();
+  List<String> get branchIds => branches.map((b) => b.branchId).toList();
 
   Map<String, dynamic> toJson() {
     return {
@@ -92,6 +99,7 @@ class ItemModel {
     DateTime? createdAt,
     List<ItemTaxInfo>? taxes,
     List<ItemDiscountInfo>? discounts,
+    List<ItemBranchInfo>? branches,
   }) {
     return ItemModel(
       id: id ?? this.id,
@@ -108,6 +116,7 @@ class ItemModel {
       createdAt: createdAt ?? this.createdAt,
       taxes: taxes ?? this.taxes,
       discounts: discounts ?? this.discounts,
+      branches: branches ?? this.branches,
     );
   }
 }
@@ -117,13 +126,43 @@ class ItemTaxInfo {
   final String name;
   final double rate;
 
-  ItemTaxInfo({required this.id, required this.name, required this.rate});
+  ItemTaxInfo({
+    required this.id,
+    required this.name,
+    required this.rate,
+  });
 
   factory ItemTaxInfo.fromJson(Map<String, dynamic> json) {
     return ItemTaxInfo(
       id: (json['TaxID'] as String?) ?? '',
       name: (json['TaxName'] as String?) ?? '',
       rate: (json['TaxRate'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class ItemBranchInfo {
+  final String branchId;
+  final String branchCode;
+  final String branchName;
+  final bool isActive;
+  final bool isAvailable;
+
+  ItemBranchInfo({
+    required this.branchId,
+    required this.branchCode,
+    required this.branchName,
+    required this.isActive,
+    required this.isAvailable,
+  });
+
+  factory ItemBranchInfo.fromJson(Map<String, dynamic> json) {
+    return ItemBranchInfo(
+      branchId: json['BranchID'] as String,
+      branchCode: json['BranchCode'] as String,
+      branchName: json['BranchName'] as String,
+      isActive: json['IsActive'] as bool,
+      isAvailable: json['IsAvailable'] as bool,
     );
   }
 }

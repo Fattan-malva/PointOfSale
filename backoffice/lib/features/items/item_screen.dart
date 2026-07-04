@@ -141,7 +141,8 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
               controller: _searchController,
               decoration: const InputDecoration(
                 hintText: 'Search items...',
-                hintStyle: TextStyle(fontSize: 14, color: AppColors.textDisabled),
+                hintStyle:
+                    TextStyle(fontSize: 14, color: AppColors.textDisabled),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -168,13 +169,15 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
           _FilterChip(
             label: 'All',
             selected: state.selectedCategoryId == null,
-            onTap: () => ref.read(itemProvider.notifier).setCategoryFilter(null),
+            onTap: () =>
+                ref.read(itemProvider.notifier).setCategoryFilter(null),
           ),
           ...state.categories.map((c) => _FilterChip(
-            label: c.name,
-            selected: state.selectedCategoryId == c.id,
-            onTap: () => ref.read(itemProvider.notifier).setCategoryFilter(c.id),
-          )),
+                label: c.name,
+                selected: state.selectedCategoryId == c.id,
+                onTap: () =>
+                    ref.read(itemProvider.notifier).setCategoryFilter(c.id),
+              )),
         ],
       ),
     );
@@ -184,7 +187,8 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
     if (state.isLoading) {
       return const Center(
         child: SizedBox(
-          width: 20, height: 20,
+          width: 20,
+          height: 20,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       );
@@ -265,7 +269,8 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: item.isActive
                               ? AppColors.pastelGreen
@@ -361,6 +366,7 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
       categories: state.categories,
       allTaxes: state.allTaxes,
       allDiscounts: state.allDiscounts,
+      allBranches: state.allBranches,
     );
     if (result == null || !context.mounted) return;
 
@@ -371,13 +377,15 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
         'Price': result['Price'],
         'ItemType': 'Product',
         if (result['CostPrice'] != null) 'CostPrice': result['CostPrice'],
-        if (result['Description']?.isNotEmpty == true) 'Description': result['Description'],
+        if (result['Description']?.isNotEmpty == true)
+          'Description': result['Description'],
         if (result['CategoryID'] != null) 'CategoryID': result['CategoryID'],
       },
       taxIds: (result['taxIds'] as List<String>?) ?? [],
       discountIds: (result['discountIds'] as List<String>?) ?? [],
     );
-    if (context.mounted) _snack(ok ? 'Item created' : 'Failed to create item', ok: ok);
+    if (context.mounted)
+      _snack(ok ? 'Item created' : 'Failed to create item', ok: ok);
   }
 
   void _showEditDialog(ItemModel item) async {
@@ -392,19 +400,22 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
     if (result == null || !context.mounted) return;
 
     final ok = await ref.read(itemProvider.notifier).updateItem(
-      item.id,
-      {
-        'ItemCode': result['ItemCode'],
-        'ItemName': result['ItemName'],
-        'Price': result['Price'],
-        if (result['CostPrice'] != null) 'CostPrice': result['CostPrice'],
-        if (result['Description']?.isNotEmpty == true) 'Description': result['Description'],
-        if (result['CategoryID'] != null) 'CategoryID': result['CategoryID'],
-      },
-      taxIds: (result['taxIds'] as List<String>?) ?? [],
-      discountIds: (result['discountIds'] as List<String>?) ?? [],
-    );
-    if (context.mounted) _snack(ok ? 'Item updated' : 'Failed to update item', ok: ok);
+          item.id,
+          {
+            'ItemCode': result['ItemCode'],
+            'ItemName': result['ItemName'],
+            'Price': result['Price'],
+            if (result['CostPrice'] != null) 'CostPrice': result['CostPrice'],
+            if (result['Description']?.isNotEmpty == true)
+              'Description': result['Description'],
+            if (result['CategoryID'] != null)
+              'CategoryID': result['CategoryID'],
+          },
+          taxIds: (result['taxIds'] as List<String>?) ?? [],
+          discountIds: (result['discountIds'] as List<String>?) ?? [],
+        );
+    if (context.mounted)
+      _snack(ok ? 'Item updated' : 'Failed to update item', ok: ok);
   }
 
   void _confirmDelete(String id, String name) async {
@@ -412,17 +423,19 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
     if (!confirmed || !context.mounted) return;
 
     final ok = await ref.read(itemProvider.notifier).deleteItem(id);
-    if (context.mounted) _snack(ok ? 'Item deleted' : 'Failed to delete item', ok: ok);
+    if (context.mounted)
+      _snack(ok ? 'Item deleted' : 'Failed to delete item', ok: ok);
   }
 
   void _snack(String message, {required bool ok}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
-        )),
+        content: Text(message,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
+            )),
         backgroundColor: ok ? AppColors.pastelGreen : AppColors.pastelRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -445,7 +458,8 @@ class _AnimatedEntry extends StatelessWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedEntry({required this.controller, required this.index, required this.child});
+  const _AnimatedEntry(
+      {required this.controller, required this.index, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -455,11 +469,14 @@ class _AnimatedEntry extends StatelessWidget {
 
     return FadeTransition(
       opacity: Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: controller, curve: Interval(start, end, curve: curve)),
+        CurvedAnimation(
+            parent: controller, curve: Interval(start, end, curve: curve)),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(
-          CurvedAnimation(parent: controller, curve: Interval(start, end, curve: curve)),
+        position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+            .animate(
+          CurvedAnimation(
+              parent: controller, curve: Interval(start, end, curve: curve)),
         ),
         child: child,
       ),
@@ -499,7 +516,8 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip(
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -511,7 +529,10 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: selected ? const Color(0xFF111111) : Colors.white,
-            border: Border.all(color: selected ? const Color(0xFF111111) : const Color(0xFFEAEAEA)),
+            border: Border.all(
+                color: selected
+                    ? const Color(0xFF111111)
+                    : const Color(0xFFEAEAEA)),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

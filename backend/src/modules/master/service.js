@@ -10,8 +10,8 @@ class MasterService {
     return this.repo.findAllCategory(params);
   }
 
-  async countAllCategory() {
-    return this.repo.countAllCategory();
+  async countAllCategory(params = {}) {
+    return this.repo.countAllCategory(params);
   }
 
   async getCategoryById(id) {
@@ -53,7 +53,24 @@ class MasterService {
   }
 
   async createItem(data) {
-    const item = await this.repo.createItem(data);
+    const { branchIds, taxIds, discountIds, ...itemData } = data;
+    const item = await this.repo.createItem(itemData);
+
+    if (Array.isArray(branchIds)) {
+      for (const branchId of branchIds) {
+        await this.repo.assignBranchToItem(item.ItemID, branchId);
+      }
+    }
+    if (Array.isArray(taxIds)) {
+      for (const taxId of taxIds) {
+        await this.repo.assignTaxToItem(item.ItemID, taxId);
+      }
+    }
+    if (Array.isArray(discountIds)) {
+      for (const discountId of discountIds) {
+        await this.repo.assignDiscountToItem(item.ItemID, discountId);
+      }
+    }
 
     await auditLog({
       Module: 'Master', Action: 'CreateItem', TableName: 'Item',
@@ -61,21 +78,64 @@ class MasterService {
       NewValue: { ItemCode: item.ItemCode, ItemName: item.ItemName, Price: item.Price },
     });
 
-    return item;
+    return this.repo.findItemById(item.ItemID);
   }
 
   async updateItem(id, data) {
+    const { branchIds, taxIds, discountIds, ...itemData } = data;
     const old = await this.getItemById(id);
-    const updated = await this.repo.updateItem(id, data);
+    const updated = await this.repo.updateItem(id, itemData);
+
+    if (Array.isArray(branchIds)) {
+      const current = await this.repo.findBranchesByItemId(id);
+      const currentIds = new Set(current.map(b => b.BranchID));
+      const newIds = new Set(branchIds);
+      // remove old not in new
+      for (const branchId of currentIds) {
+        if (!newIds.has(branchId)) {
+          await this.repo.removeBranchFromItem(id, branchId);
+        }
+      }
+      // add new not in old
+      for (const branchId of newIds) {
+        if (!currentIds.has(branchId)) {
+          await this.repo.assignBranchToItem(id, branchId);
+        }
+      }
+    }
+
+    if (Array.isArray(taxIds)) {
+      const current = await this.repo.findTaxesByItemId(id);
+      const currentIds = new Set(current.map(t => t.TaxID));
+      const newIds = new Set(taxIds);
+      for (const taxId of currentIds.difference(newIds)) {
+        await this.repo.removeTaxFromItem(id, taxId);
+      }
+      for (const taxId of newIds.difference(currentIds)) {
+        await this.repo.assignTaxToItem(id, taxId);
+      }
+    }
+
+    if (Array.isArray(discountIds)) {
+      const current = await this.repo.findDiscountsByItemId(id);
+      const currentIds = new Set(current.map(d => d.DiscountID));
+      const newIds = new Set(discountIds);
+      for (const discountId of currentIds.difference(newIds)) {
+        await this.repo.removeDiscountFromItem(id, discountId);
+      }
+      for (const discountId of newIds.difference(currentIds)) {
+        await this.repo.assignDiscountToItem(id, discountId);
+      }
+    }
 
     await auditLog({
       Module: 'Master', Action: 'UpdateItem', TableName: 'Item',
       RecordID: id,
       OldValue: { ItemName: old.ItemName, Price: old.Price },
-      NewValue: data,
+      NewValue: itemData,
     });
 
-    return updated;
+    return this.repo.findItemById(id);
   }
 
   async deleteItem(id) {

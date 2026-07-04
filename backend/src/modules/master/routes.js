@@ -12,10 +12,10 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/categories', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      const { limit, offset } = request.query;
+      const { limit, offset, search } = request.query;
       const [data, { total }] = await Promise.all([
-        service.getAllCategory({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
-        service.countAllCategory(),
+        service.getAllCategory({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined, search }),
+        service.countAllCategory({ search }),
       ]);
       return { data, total };
     },
@@ -70,15 +70,16 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/items', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      const { limit, offset, search, CategoryID, ItemType } = request.query;
+      const { limit, offset, search, CategoryID, ItemType, branchId } = request.query;
       const params = {
         limit: limit ? parseInt(limit) : undefined,
         offset: offset ? parseInt(offset) : undefined,
         search,
         categoryId: CategoryID,
         itemType: ItemType,
+        branchId,
       };
-      const countParams = { search, categoryId: CategoryID, itemType: ItemType };
+      const countParams = { search, categoryId: CategoryID, itemType: ItemType, branchId };
       const [data, { total }] = await Promise.all([
         service.getAllItem(params),
         service.countAllItem(countParams),
@@ -338,6 +339,48 @@ async function masterRoutes(fastify, opts) {
     handler: async (request, reply) => {
       await service.removeDiscountFromItem(request.params.id, request.params.discountId);
       return { message: 'Discount removed' };
+    },
+  });
+
+  fastify.get('/items/:id/branches', {
+    schema: { params: idParam },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      const branches = await service.repo.findBranchesByItemId(request.params.id);
+      return { data: branches };
+    },
+  });
+
+  fastify.post('/items/:id/branches/:branchId', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id', 'branchId'],
+        properties: { id: { type: 'string', format: 'uuid' }, branchId: { type: 'string', format: 'uuid' } },
+      },
+    },
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
+    handler: async (request, reply) => {
+      await service.getItemById(request.params.id);
+      await service.repo.assignBranchToItem(request.params.id, request.params.branchId);
+      reply.code(201);
+      return { message: 'Branch assigned' };
+    },
+  });
+
+  fastify.delete('/items/:id/branches/:branchId', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id', 'branchId'],
+        properties: { id: { type: 'string', format: 'uuid' }, branchId: { type: 'string', format: 'uuid' } },
+      },
+    },
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
+    handler: async (request, reply) => {
+      await service.getItemById(request.params.id);
+      await service.repo.removeBranchFromItem(request.params.id, request.params.branchId);
+      return { message: 'Branch removed' };
     },
   });
 
