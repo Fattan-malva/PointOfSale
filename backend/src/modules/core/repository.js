@@ -3,8 +3,15 @@ const uuidv7 = require('../../helpers/uuidv7');
 
 class CoreRepository {
   // Branch
-  async findAllBranch() {
-    return db('Branch').select('*').orderBy('BranchName');
+  async findAllBranch({ limit, offset } = {}) {
+    let query = db('Branch').select('*').orderBy('BranchName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllBranch() {
+    return db('Branch').count('BranchID as total').first();
   }
 
   async findBranchById(id) {
@@ -28,8 +35,15 @@ class CoreRepository {
   }
 
   // MstRole
-  async findAllRole() {
-    return db('MstRole').select('*').orderBy('RoleName');
+  async findAllRole({ limit, offset } = {}) {
+    let query = db('MstRole').select('*').orderBy('RoleName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllRole() {
+    return db('MstRole').count('RoleID as total').first();
   }
 
   async findRoleById(id) {
@@ -53,8 +67,15 @@ class CoreRepository {
   }
 
   // MstPermission
-  async findAllPermission() {
-    return db('MstPermission').select('*').orderBy('PermissionName');
+  async findAllPermission({ limit, offset } = {}) {
+    let query = db('MstPermission').select('*').orderBy('PermissionName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllPermission() {
+    return db('MstPermission').count('PermissionID as total').first();
   }
 
   async findPermissionById(id) {
@@ -92,12 +113,19 @@ class CoreRepository {
   }
 
   // MstUser
-  async findAllUser() {
-    return db('MstUser')
+  async findAllUser({ limit, offset } = {}) {
+    let query = db('MstUser')
       .join('Branch', 'MstUser.BranchID', 'Branch.BranchID')
       .join('MstRole', 'MstUser.RoleID', 'MstRole.RoleID')
       .select('MstUser.*', 'Branch.BranchName', 'MstRole.RoleName')
       .orderBy('MstUser.FullName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllUser() {
+    return db('MstUser').count('UserID as total').first();
   }
 
   async findUserById(id) {

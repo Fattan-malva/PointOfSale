@@ -16,7 +16,21 @@ class SystemRepository {
     if (filters.RecordID) query = query.where('RecordID', filters.RecordID);
     if (filters.DateFrom) query = query.where('CreatedAt', '>=', new Date(filters.DateFrom));
     if (filters.DateTo) query = query.where('CreatedAt', '<=', new Date(filters.DateTo));
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
     return query;
+  }
+
+  async countAuditLogs(filters = {}) {
+    let query = db('AuditLog');
+    if (filters.Module) query = query.where('Module', filters.Module);
+    if (filters.Action) query = query.where('Action', filters.Action);
+    if (filters.UserID) query = query.where('UserID', filters.UserID);
+    if (filters.TableName) query = query.where('TableName', filters.TableName);
+    if (filters.RecordID) query = query.where('RecordID', filters.RecordID);
+    if (filters.DateFrom) query = query.where('CreatedAt', '>=', new Date(filters.DateFrom));
+    if (filters.DateTo) query = query.where('CreatedAt', '<=', new Date(filters.DateTo));
+    return query.count('AuditID as total').first();
   }
 
   async createUserActivity(data) {
@@ -31,7 +45,19 @@ class SystemRepository {
     if (filters.UserType) query = query.where('UserType', filters.UserType);
     if (filters.DateFrom) query = query.where('CreatedAt', '>=', new Date(filters.DateFrom));
     if (filters.DateTo) query = query.where('CreatedAt', '<=', new Date(filters.DateTo));
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
     return query;
+  }
+
+  async countUserActivities(filters = {}) {
+    let query = db('UserActivity');
+    if (filters.UserID) query = query.where('UserID', filters.UserID);
+    if (filters.Action) query = query.where('Action', filters.Action);
+    if (filters.UserType) query = query.where('UserType', filters.UserType);
+    if (filters.DateFrom) query = query.where('CreatedAt', '>=', new Date(filters.DateFrom));
+    if (filters.DateTo) query = query.where('CreatedAt', '<=', new Date(filters.DateTo));
+    return query.count('ActivityID as total').first();
   }
 }
 

@@ -218,21 +218,26 @@ ReferenceID
 
 ### Promotion
 ```
-PromotionID
-Name
-StartDate
-EndDate
+PromotionID        -- UUID v7 (PK)
+PromotionName
+PromotionType      -- Discount, BuyXGetY, HappyHour, Cashback
+DiscountType       -- Percentage, Nominal
+DiscountValue
+BuyQty             -- untuk BuyXGetY
+FreeQty            -- untuk BuyXGetY
 MinimumPurchase
 MaximumDiscount
-PromotionType
 Priority
+StartDate
+EndDate
 IsActive
 ```
 
 ### PromotionItem
 ```
-PromotionID
-ItemID
+PromotionItemID    -- UUID v7 (PK)
+PromotionID        -- UUID v7 (FK ke Promotion)
+ItemID             -- UUID v7 (FK ke Item)
 ```
 
 Struktur generik ini mendukung berbagai tipe promosi tanpa perubahan skema:

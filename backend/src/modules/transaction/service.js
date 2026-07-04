@@ -14,8 +14,12 @@ class TransactionService {
     return order;
   }
 
-  async getAllOrders(filters) {
+  async getAllOrders(filters = {}) {
     return this.repo.findOrders(filters);
+  }
+
+  async countAllOrders(filters = {}) {
+    return this.repo.countOrders(filters);
   }
 
   async getOrderWithDetails(id) {
@@ -142,7 +146,9 @@ class TransactionService {
     }
 
     const afterDiscount = subTotal - discountTotal;
-    const taxTotal = afterDiscount * 0.11;
+    const taxes = await db('Tax').where('IsActive', true);
+    const taxRate = taxes.reduce((sum, t) => sum + parseFloat(t.TaxRate), 0) / 100;
+    const taxTotal = afterDiscount * taxRate;
     const serviceCharge = 0;
     const grandTotal = afterDiscount + taxTotal + serviceCharge;
 
@@ -391,7 +397,7 @@ class TransactionService {
     return this.repo.updateKitchenStatus(kitchenId, status);
   }
 
-  async getAllShiftClosing(filters) {
+  async getAllShiftClosing(filters = {}) {
     return this.repo.findAllShiftClosing(filters);
   }
 

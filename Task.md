@@ -62,8 +62,10 @@ Setiap task "Tabel & API" dipecah menjadi dua sub-langkah: **Migration** (buat/u
 - [x] Integrasi `Promotion` + `PromotionItem` ke service pembuatan order (hitung diskon otomatis)
 - [x] Service: logika pembayaran + point & voucher
 - [x] Implementasi `AuditLog` pada aksi kritikal
-- [ ] Build UI POS Kasir (Flutter) — konsumsi API di atas
-- [ ] POS Kasir membaca `GET /app-config` saat login
+- [x] Tax rate diambil dari tabel Tax (tidak hardcode 11%)
+- [x] Pagination (limit/offset) di semua list endpoints
+- [~] Build UI POS Kasir (Flutter) — konsumsi API di atas
+- [~] POS Kasir membaca `GET /app-config` saat login
 
 ## Fase 4 — Inventory Module ✅
 
@@ -75,12 +77,12 @@ Setiap task "Tabel & API" dipecah menjadi dua sub-langkah: **Migration** (buat/u
 
 ## Fase 5 — BackOffice App
 
-- [ ] Modul manajemen: Master data (menu, kategori, modifier, dsb.) — API sudah siap
-- [ ] Modul manajemen: Karyawan & Role/Permission — API sudah siap
-- [ ] Modul manajemen: Promosi & Voucher — butuh Fase Promosi
-- [ ] Modul manajemen: Inventory (supplier, purchase, stok) — API sudah siap
-- [ ] Modul: Pengaturan `AppConfig` per cabang/tenant — API sudah siap
-- [ ] Modul: Audit Log & Activity Log viewer — butuh Fase System Logging
+- [~] Modul manajemen: Master data (menu, kategori, modifier, dsb.) — API sudah siap
+- [~] Modul manajemen: Karyawan & Role/Permission — API sudah siap
+- [~] Modul manajemen: Inventory (supplier, purchase, stok) — API sudah siap
+- [ ] Modul manajemen: Branch Management (CRUD branch)
+- [ ] Modul: Pengaturan `AppConfig`
+- [ ] Modul: Audit Log & Activity Log viewer
 
 ## Fase 6 — CRM & User APK ✅
 
@@ -89,10 +91,8 @@ Setiap task "Tabel & API" dipecah menjadi dua sub-langkah: **Migration** (buat/u
 - [x] Migration + API: `CustomerCart`
 - [x] Migration + API: `CustomerNotification`
 - [x] Customer auth: login by phone/email + register
-- [ ] Migration + API: `CustomerPoint` (Earn/Redeem/Expired) — PointHistory sudah ada di Fase 3
-- [ ] Build UI User APK (Flutter) — registrasi, login, lihat menu, pesan, riwayat, profil
-- [ ] Integrasi QR Ordering — aktif jika `EnableQROrdering`
-- [ ] Integrasi Delivery/Reservation — aktif jika `EnableDelivery` / `EnableReservation`
+- [x] CustomerPoint (Earn/Redeem/Expired) via PointHistory
+- [~] Build UI User APK (Flutter) — registrasi, login, lihat menu, pesan, riwayat, profil
 
 ## Fase Promosi (Tabel & API ✅)
 
@@ -101,30 +101,95 @@ Setiap task "Tabel & API" dipecah menjadi dua sub-langkah: **Migration** (buat/u
 - [x] Permission `CanManagePromotion` sudah ada di seed sejak Fase 1
 - [x] Integrasi Promotion ke service pembuatan order (hitung diskon otomatis)
 
-## Fase 7 — Reporting Module
+## Fase 7 — Reporting Module ✅
 
-- [ ] Laporan penjualan (per cabang, per periode, per kasir)
-- [ ] Laporan stok & pergerakan stok
-- [ ] Laporan shift & rekonsiliasi kas
-- [ ] Dashboard ringkasan untuk Owner/Manager
+- [x] Laporan penjualan (per cabang, per periode, per kasir) — endpoint `/reports/sales`
+- [x] Laporan stok & pergerakan stok — endpoint `/reports/stock`
+- [x] Laporan shift & rekonsiliasi kas — endpoint `/reports/shifts`
+- [x] Dashboard ringkasan untuk Owner/Manager — endpoint `/reports/dashboard`
 
-## Fase 8 — System Module
+## Fase 8 — System Module ✅
 
 - [x] Migration + API: `AuditLog` — sudah dipakai di Order, User, Item, Payment
 - [x] Migration + API: `UserActivity` (login/logout, device, IP)
 - [x] Integrasi audit & activity log ke core/transaction/master/crm modules
 - [x] Review keamanan endpoint (permission check menyeluruh di seluruh route Fastify)
 - [x] **Access Token + Refresh Token** — endpoint `/auth/refresh`, `/auth/logout`, TokenExpired & AccountSuspended handling
-- [ ] Rate limiting (`@fastify/rate-limit`) pada endpoint login & sensitif
-- [ ] Rotating refresh token (generate new token on each refresh)
-- [ ] Blacklist access token saat logout atau password change
+- [x] Rate limiting (`@fastify/rate-limit`) pada endpoint login (10/min)
+- [x] Rotating refresh token (generate new token on each refresh)
+- [x] Pagination (limit/offset) di list endpoints audit & activity
 
-## Fase 8.5 — Dashboard/Admin App
+---
 
-- [ ] Modul: Ringkasan lintas cabang (penjualan, stok, shift) untuk Owner
-- [ ] Modul: Perbandingan performa antar cabang
-- [ ] Modul: Akses cepat ke Audit Log & Activity Log lintas cabang
-- [ ] Dashboard/Admin membaca `GET /app-config` dan hanya menampilkan data yang diizinkan sesuai permission Owner/Manager
+## 📱 Frontend Tasks
+
+### POS Kasir App (`pos-kasir/`)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Auth: Login screen + JWT interceptor + auto refresh | ✅ |
+| 2 | Menu: List categories + items grid + search | ✅ |
+| 3 | Menu: Modifier dialog | ✅ |
+| 4 | Table: Grid selection + DineIn/TakeAway toggle | ✅ |
+| 5 | Order: Create order + cart view + qty control | ✅ |
+| 6 | Order: Confirm order + cancel order | ✅ |
+| 7 | Payment: Payment screen + process payment | ✅ |
+| 8 | History: Past orders list | ✅ |
+| 9 | **Integrasi AppConfig** — baca `GET /app-config` saat login, sembunyikan fitur nonaktif | ⬜ |
+| 10 | Integrasi item modifier & discount (sub-resource endpoints) | ⬜ |
+| 11 | Kitchen display integration | ⬜ |
+| 12 | Shift management (open/close shift) | ⬜ |
+| 13 | Responsive UI (compact + medium + expanded) | ⬜ |
+
+### BackOffice App (`backoffice/`)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Auth: Login screen + JWT interceptor + auto refresh | ✅ |
+| 2 | Dashboard: Stats grid + quick actions | ✅ |
+| 3 | **Inventory: CRUD Items** — connect ke `GET/POST/PUT/DELETE /items` | ⬜ |
+| 4 | **Inventory: Categories** — connect ke `GET/POST/PUT/DELETE /categories` | ⬜ |
+| 5 | **Inventory: Modifiers** — connect ke `/modifiers` | ⬜ |
+| 6 | **Inventory: Stock management** — connect ke `/stock` | ⬜ |
+| 7 | **Inventory: Suppliers + Purchases** — connect ke `/suppliers`, `/purchases` | ⬜ |
+| 8 | **Inventory: Recipes** — connect ke `/recipes` | ⬜ |
+| 9 | **Employees: CRUD Users** — connect ke `GET/POST/PUT/DELETE /users` | ⬜ |
+| 10 | **Employees: Role & Permission management** — connect ke `/roles`, `/permissions` | ⬜ |
+| 11 | **Branch Management: CRUD Branch** — screen baru, connect ke `/branches` | ⬜ |
+| 12 | **Orders: List + filter + confirm/complete/cancel** — connect ke `/orders` | ⬜ |
+| 13 | **Reports: Sales report screen** — connect ke `/reports/sales` | ⬜ |
+| 14 | **Reports: Stock report screen** — connect ke `/reports/stock` | ⬜ |
+| 15 | **Reports: Shift report screen** — connect ke `/reports/shifts` | ⬜ |
+| 16 | **Settings: AppConfig** — connect ke `GET/PUT /app-config` | ⬜ |
+| 17 | **System: Audit Log viewer** — connect ke `/audit-logs` | ⬜ |
+| 18 | Responsive UI (compact + medium + expanded) | ⬜ |
+
+### Dashboard Admin App (`dashboard-admin/`)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Auth: Login screen + JWT interceptor | 🟡 |
+| 2 | Overview: Lintas cabang ringkasan — connect ke `/reports/dashboard` | 🟡 |
+| 3 | Branches: Perbandingan performa antar cabang | 🟡 |
+| 4 | Reports: Sales comparison screen | 🟡 |
+| 5 | Reports: Branch performance screen | 🟡 |
+| 6 | Audit: Audit Log viewer lintas cabang | 🟡 |
+| 7 | Responsive UI | 🟡 |
+
+### User APK App (`user-apk/`)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Auth: Login/Register screen — connect ke `POST /auth/customer/login`, `/register` | 🟡 |
+| 2 | Menu: Browse categories + items | 🟡 |
+| 3 | Cart: Add to cart + qty control | 🟡 |
+| 4 | Orders: Create order + history + tracking | 🟡 |
+| 5 | Profile: View/edit profile + addresses | 🟡 |
+| 6 | Favorites: Toggle favorites | 🟡 |
+| 7 | Points: View point history + redeem | 🟡 |
+| 8 | Notifications: List + mark read | 🟡 |
+
+---
 
 ## Fase 9 — QA & Hardening
 
@@ -132,7 +197,7 @@ Setiap task "Tabel & API" dipecah menjadi dua sub-langkah: **Migration** (buat/u
 - [ ] Uji skenario permission per role (Cashier, Manager, Owner, Kitchen, Customer)
 - [ ] Uji feature flag `AppConfig` — pastikan UI menyesuaikan tanpa perlu deploy ulang
 - [ ] Load testing API Fastify untuk skenario banyak cabang/transaksi bersamaan
-- [ ] Audit keamanan (SQL injection, auth bypass, rate limiting — mis. `@fastify/rate-limit`)
+- [ ] Audit keamanan (SQL injection, auth bypass, rate limiting)
 - [ ] Review seluruh migration Knex bisa dijalankan dari kosong (`migrate:latest`) dan di-rollback (`migrate:rollback`) tanpa error
 
 ## Fase 10 — Rencana Lanjutan (Opsional)

@@ -8,8 +8,12 @@ class CoreService {
   }
 
   // Branch
-  async getAllBranch() {
-    return this.repository.findAllBranch();
+  async getAllBranch(params = {}) {
+    return this.repository.findAllBranch(params);
+  }
+
+  async countAllBranch() {
+    return this.repository.countAllBranch();
   }
 
   async getBranchById(id) {
@@ -33,8 +37,12 @@ class CoreService {
   }
 
   // Role
-  async getAllRole() {
-    return this.repository.findAllRole();
+  async getAllRole(params = {}) {
+    return this.repository.findAllRole(params);
+  }
+
+  async countAllRole() {
+    return this.repository.countAllRole();
   }
 
   async getRoleById(id) {
@@ -58,8 +66,12 @@ class CoreService {
   }
 
   // Permission
-  async getAllPermission() {
-    return this.repository.findAllPermission();
+  async getAllPermission(params = {}) {
+    return this.repository.findAllPermission(params);
+  }
+
+  async countAllPermission() {
+    return this.repository.countAllPermission();
   }
 
   async createPermission(data) {
@@ -87,8 +99,12 @@ class CoreService {
   }
 
   // User
-  async getAllUser() {
-    return this.repository.findAllUser();
+  async getAllUser(params = {}) {
+    return this.repository.findAllUser(params);
+  }
+
+  async countAllUser() {
+    return this.repository.countAllUser();
   }
 
   async getUserById(id) {

@@ -6,8 +6,12 @@ class MasterService {
     this.repo = new MasterRepository();
   }
 
-  async getAllCategory() {
-    return this.repo.findAllCategory();
+  async getAllCategory(params = {}) {
+    return this.repo.findAllCategory(params);
+  }
+
+  async countAllCategory() {
+    return this.repo.countAllCategory();
   }
 
   async getCategoryById(id) {
@@ -30,8 +34,12 @@ class MasterService {
     return this.repo.deleteCategory(id);
   }
 
-  async getAllItem() {
-    return this.repo.findAllItem();
+  async getAllItem(params = {}) {
+    return this.repo.findAllItem(params);
+  }
+
+  async countAllItem() {
+    return this.repo.countAllItem();
   }
 
   async getItemById(id) {
@@ -77,8 +85,12 @@ class MasterService {
     });
   }
 
-  async getAllModifier() {
-    return this.repo.findAllModifier();
+  async getAllModifier(params = {}) {
+    return this.repo.findAllModifier(params);
+  }
+
+  async countAllModifier() {
+    return this.repo.countAllModifier();
   }
 
   async getModifierById(id) {
@@ -152,8 +164,12 @@ class MasterService {
     return this.repo.deletePackageDetail(id);
   }
 
-  async getAllTable() {
-    return this.repo.findAllTable();
+  async getAllTable(params = {}) {
+    return this.repo.findAllTable(params);
+  }
+
+  async countAllTable() {
+    return this.repo.countAllTable();
   }
 
   async getTableById(id) {
@@ -176,8 +192,12 @@ class MasterService {
     return this.repo.deleteTable(id);
   }
 
-  async getAllTax() {
-    return this.repo.findAllTax();
+  async getAllTax(params = {}) {
+    return this.repo.findAllTax(params);
+  }
+
+  async countAllTax() {
+    return this.repo.countAllTax();
   }
 
   async getTaxById(id) {
@@ -200,8 +220,12 @@ class MasterService {
     return this.repo.deleteTax(id);
   }
 
-  async getAllDiscount() {
-    return this.repo.findAllDiscount();
+  async getAllDiscount(params = {}) {
+    return this.repo.findAllDiscount(params);
+  }
+
+  async countAllDiscount() {
+    return this.repo.countAllDiscount();
   }
 
   async getDiscountById(id) {
@@ -224,8 +248,12 @@ class MasterService {
     return this.repo.deleteDiscount(id);
   }
 
-  async getAllVoucher() {
-    return this.repo.findAllVoucher();
+  async getAllVoucher(params = {}) {
+    return this.repo.findAllVoucher(params);
+  }
+
+  async countAllVoucher() {
+    return this.repo.countAllVoucher();
   }
 
   async getVoucherById(id) {
@@ -248,8 +276,12 @@ class MasterService {
     return this.repo.deleteVoucher(id);
   }
 
-  async getAllPaymentMethod() {
-    return this.repo.findAllPaymentMethod();
+  async getAllPaymentMethod(params = {}) {
+    return this.repo.findAllPaymentMethod(params);
+  }
+
+  async countAllPaymentMethod() {
+    return this.repo.countAllPaymentMethod();
   }
 
   async getPaymentMethodById(id) {
@@ -272,8 +304,12 @@ class MasterService {
     return this.repo.deletePaymentMethod(id);
   }
 
-  async getAllShift() {
-    return this.repo.findAllShift();
+  async getAllShift(params = {}) {
+    return this.repo.findAllShift(params);
+  }
+
+  async countAllShift() {
+    return this.repo.countAllShift();
   }
 
   async getShiftById(id) {
@@ -296,8 +332,12 @@ class MasterService {
     return this.repo.deleteShift(id);
   }
 
-  async getAllCustomer() {
-    return this.repo.findAllCustomer();
+  async getAllCustomer(params = {}) {
+    return this.repo.findAllCustomer(params);
+  }
+
+  async countAllCustomer() {
+    return this.repo.countAllCustomer();
   }
 
   async getCustomerById(id) {
@@ -320,8 +360,12 @@ class MasterService {
     return this.repo.deleteCustomer(id);
   }
 
-  async getAllMedia() {
-    return this.repo.findAllMedia();
+  async getAllMedia(params = {}) {
+    return this.repo.findAllMedia(params);
+  }
+
+  async countAllMedia() {
+    return this.repo.countAllMedia();
   }
 
   async getMediaById(id) {

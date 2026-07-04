@@ -12,11 +12,17 @@ async function promotionRoutes(fastify, opts) {
   fastify.get('/promotions', {
     preHandler: [fastify.checkPermission(['CanManagePromotion'])],
     handler: async (request, reply) => {
-      const { IsActive, PromotionType } = request.query;
+      const { IsActive, PromotionType, limit, offset } = request.query;
       const filter = {};
       if (IsActive !== undefined) filter.IsActive = IsActive === 'true';
       if (PromotionType) filter.PromotionType = PromotionType;
-      return { data: await service.getAll(filter) };
+      filter.limit = limit ? parseInt(limit) : undefined;
+      filter.offset = offset ? parseInt(offset) : undefined;
+      const [data, { total }] = await Promise.all([
+        service.getAll(filter),
+        service.countAll(filter),
+      ]);
+      return { data, total };
     },
   });
 

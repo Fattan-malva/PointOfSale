@@ -106,13 +106,14 @@ backend/
 │   ├── db/
 │   │   └── index.js        # Koneksi Knex
 │   └── modules/
-│       ├── core/           # Branch, Role, Permission, User, Auth, AppConfig
-│       ├── master/         # (soon) Category, Item, Modifier, dll
-│       ├── transaction/    # (soon) Order, Payment, KDS
-│       ├── inventory/      # (soon) Supplier, Stock, Recipe
-│       ├── crm/            # (soon) Customer, Point, Voucher
-│       ├── reporting/      # (soon) Laporan
-│       └── system/         # (soon) AuditLog, ActivityLog
+│               ├── core/           # Branch, Role, Permission, User, Auth, AppConfig
+│       ├── master/         # Category, Item, Modifier, Table, Tax, Discount, Voucher, dll
+│       ├── transaction/    # Order, Payment, KDS, Shift Closing
+│       ├── inventory/      # Supplier, Purchase, Stock, Recipe
+│       ├── crm/            # Customer Auth, Profile, Cart, Favorites, Points
+│       ├── promotion/      # Promotion & PromotionItem
+│       ├── reporting/      # Sales, Stock, Shift, Dashboard Reports
+│       └── system/         # AuditLog, UserActivity
 ├── migrations/             # File migration Knex
 ├── seeds/                  # Seed data
 ├── knexfile.js             # Konfigurasi Knex

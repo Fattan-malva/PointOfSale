@@ -5,8 +5,12 @@ class InventoryService {
     this.repo = new InventoryRepository();
   }
 
-  async getAllSupplier() {
-    return this.repo.findAllSupplier();
+  async getAllSupplier(params = {}) {
+    return this.repo.findAllSupplier(params);
+  }
+
+  async countAllSupplier() {
+    return this.repo.countAllSupplier();
   }
 
   async getSupplierById(id) {
@@ -29,8 +33,12 @@ class InventoryService {
     return this.repo.deleteSupplier(id);
   }
 
-  async getAllPurchase(filters) {
+  async getAllPurchase(filters = {}) {
     return this.repo.findAllPurchase(filters);
+  }
+
+  async countAllPurchase(filters = {}) {
+    return this.repo.countAllPurchase(filters);
   }
 
   async getPurchaseById(id) {
@@ -99,8 +107,12 @@ class InventoryService {
     return this.repo.deletePurchaseDetail(detailId);
   }
 
-  async getAllStock(filters) {
+  async getAllStock(filters = {}) {
     return this.repo.findAllStock(filters);
+  }
+
+  async countAllStock(filters = {}) {
+    return this.repo.countAllStock(filters);
   }
 
   async adjustStock(data) {
@@ -129,8 +141,12 @@ class InventoryService {
     return this.repo.findStockMovements(filters);
   }
 
-  async getAllRecipe() {
-    return this.repo.findAllRecipe();
+  async getAllRecipe(params = {}) {
+    return this.repo.findAllRecipe(params);
+  }
+
+  async countAllRecipe() {
+    return this.repo.countAllRecipe();
   }
 
   async getRecipeById(id) {

@@ -12,9 +12,17 @@ async function transactionRoutes(fastify, opts) {
   fastify.get('/orders', {
     preHandler: [fastify.checkPermission(['CanViewOrder'])],
     handler: async (request, reply) => {
-      const { BranchID, Status, PaymentStatus, OrderType, DateFrom, DateTo } = request.query;
-      const orders = await service.getAllOrders({ BranchID, Status, PaymentStatus, OrderType, DateFrom, DateTo });
-      return { data: orders };
+      const { BranchID, Status, PaymentStatus, OrderType, DateFrom, DateTo, limit, offset } = request.query;
+      const filters = {
+        BranchID, Status, PaymentStatus, OrderType, DateFrom, DateTo,
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+      };
+      const [data, { total }] = await Promise.all([
+        service.getAllOrders(filters),
+        service.countAllOrders(filters),
+      ]);
+      return { data, total };
     },
   });
 
@@ -299,8 +307,12 @@ async function transactionRoutes(fastify, opts) {
   fastify.get('/shift-closings', {
     preHandler: [fastify.checkPermission(['CanManageShift'])],
     handler: async (request, reply) => {
-      const { BranchID } = request.query;
-      const shifts = await service.getAllShiftClosing({ BranchID });
+      const { BranchID, limit, offset } = request.query;
+      const shifts = await service.getAllShiftClosing({
+        BranchID,
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+      });
       return { data: shifts };
     },
   });

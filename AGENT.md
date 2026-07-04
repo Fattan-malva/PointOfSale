@@ -64,11 +64,11 @@ Jika sebuah task di `TASK.md` tampak bertentangan dengan salah satu aturan di at
 4. **Kerjakan dalam potongan kecil yang bisa diverifikasi** — misalnya satu modul/tabel/endpoint per iterasi, bukan seluruh fase sekaligus.
 5. **Setiap kali membuat/mengubah skema database**, pastikan konsisten dengan `DATABASE.md`. Jika Anda perlu menyimpang, update `DATABASE.md` juga di iterasi yang sama dan jelaskan alasannya ke pengguna.
 6. **Setelah menyelesaikan sebuah modul**, lakukan pengecekan singkat terhadap checklist di bagian akhir `GUIDELINE.md` (permission baru? butuh AppConfig? butuh audit log? butuh BranchID? logika di backend, bukan client?).
-7. **Jangan berasumsi terhadap kebutuhan yang masih benar-benar tidak jelas** (mis. penyedia hosting, struktur folder detail di luar 7 modul yang sudah ditentukan) — tanyakan ke pengguna sebelum membuat keputusan besar yang sulit diubah. Pilihan backend (Fastify) dan migration tool (Knex) sudah final, tidak perlu dikonfirmasi ulang.
+7. **Jangan berasumsi terhadap kebutuhan yang masih benar-benar tidak jelas** (mis. penyedia hosting, struktur folder detail di luar 8 modul yang sudah ditentukan) — tanyakan ke pengguna sebelum membuat keputusan besar yang sulit diubah. Pilihan backend (Fastify) dan migration tool (Knex) sudah final, tidak perlu dikonfirmasi ulang.
 
 ## STANDAR KUALITAS KODE
 
-- Struktur backend modular sesuai 7 modul di `PRD.md`/`GUIDELINE.md`: Core, Master, Transaction, Inventory, CRM, Reporting, System.
+- Struktur backend modular sesuai 8 modul: Core, Master, Transaction, Inventory, CRM, Promotion, Reporting, System.
 - Setiap endpoint API baru harus:
   - Divalidasi terhadap permission yang relevan (kecuali endpoint publik yang memang disengaja, mis. login).
   - Memfilter berdasarkan `BranchID` jika relevan, kecuali untuk role dengan akses lintas cabang (Owner).

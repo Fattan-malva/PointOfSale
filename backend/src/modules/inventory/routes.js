@@ -12,7 +12,12 @@ async function inventoryRoutes(fastify, opts) {
   fastify.get('/suppliers', {
     preHandler: [fastify.checkPermission(['CanManageSupplier'])],
     handler: async (request, reply) => {
-      return { data: await service.getAllSupplier() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllSupplier({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllSupplier(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -68,8 +73,17 @@ async function inventoryRoutes(fastify, opts) {
   fastify.get('/purchases', {
     preHandler: [fastify.checkPermission(['CanManagePurchase'])],
     handler: async (request, reply) => {
-      const { Status, BranchID } = request.query;
-      return { data: await service.getAllPurchase({ Status, BranchID }) };
+      const { Status, BranchID, limit, offset } = request.query;
+      const filters = {
+        Status, BranchID,
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+      };
+      const [data, { total }] = await Promise.all([
+        service.getAllPurchase(filters),
+        service.countAllPurchase(filters),
+      ]);
+      return { data, total };
     },
   });
 
@@ -149,8 +163,17 @@ async function inventoryRoutes(fastify, opts) {
   fastify.get('/stock', {
     preHandler: [fastify.checkPermission(['CanManageStock'])],
     handler: async (request, reply) => {
-      const { BranchID, LowStock } = request.query;
-      return { data: await service.getAllStock({ BranchID, LowStock }) };
+      const { BranchID, LowStock, limit, offset } = request.query;
+      const filters = {
+        BranchID, LowStock: LowStock === 'true',
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+      };
+      const [data, { total }] = await Promise.all([
+        service.getAllStock(filters),
+        service.countAllStock(filters),
+      ]);
+      return { data, total };
     },
   });
 
@@ -185,7 +208,12 @@ async function inventoryRoutes(fastify, opts) {
   fastify.get('/recipes', {
     preHandler: [fastify.checkPermission(['CanManageRecipe'])],
     handler: async (request, reply) => {
-      return { data: await service.getAllRecipe() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllRecipe({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllRecipe(),
+      ]);
+      return { data, total };
     },
   });
 

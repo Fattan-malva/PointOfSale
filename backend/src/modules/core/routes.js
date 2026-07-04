@@ -14,8 +14,12 @@ async function coreRoutes(fastify, opts) {
   fastify.get('/branches', {
     preHandler: [fastify.checkPermission([])],
     handler: async (request, reply) => {
-      const branches = await service.getAllBranch();
-      return { data: branches };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllBranch({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllBranch(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -86,8 +90,12 @@ async function coreRoutes(fastify, opts) {
   fastify.get('/roles', {
     preHandler: [fastify.checkPermission([])],
     handler: async (request, reply) => {
-      const roles = await service.getAllRole();
-      return { data: roles };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllRole({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllRole(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -152,8 +160,12 @@ async function coreRoutes(fastify, opts) {
   fastify.get('/permissions', {
     preHandler: [fastify.checkPermission([])],
     handler: async (request, reply) => {
-      const permissions = await service.getAllPermission();
-      return { data: permissions };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllPermission({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllPermission(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -230,8 +242,12 @@ async function coreRoutes(fastify, opts) {
   fastify.get('/users', {
     preHandler: [fastify.checkPermission(['CanManageEmployee'])],
     handler: async (request, reply) => {
-      const users = await service.getAllUser();
-      return { data: users };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllUser({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllUser(),
+      ]);
+      return { data, total };
     },
   });
 

@@ -40,8 +40,21 @@ class TransactionRepository {
     if (filters.OrderType) query = query.where('Order.OrderType', filters.OrderType);
     if (filters.DateFrom) query = query.where('Order.CreatedAt', '>=', filters.DateFrom);
     if (filters.DateTo) query = query.where('Order.CreatedAt', '<=', filters.DateTo);
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
 
     return query.orderBy('Order.CreatedAt', 'desc');
+  }
+
+  async countOrders(filters = {}) {
+    let query = db('Order');
+    if (filters.BranchID) query = query.where('BranchID', filters.BranchID);
+    if (filters.Status) query = query.where('Status', filters.Status);
+    if (filters.PaymentStatus) query = query.where('PaymentStatus', filters.PaymentStatus);
+    if (filters.OrderType) query = query.where('OrderType', filters.OrderType);
+    if (filters.DateFrom) query = query.where('CreatedAt', '>=', filters.DateFrom);
+    if (filters.DateTo) query = query.where('CreatedAt', '<=', filters.DateTo);
+    return query.count('OrderID as total').first();
   }
 
   async createOrder(data) {

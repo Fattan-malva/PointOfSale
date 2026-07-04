@@ -12,7 +12,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/categories', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllCategory() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllCategory({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllCategory(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -65,7 +70,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/items', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllItem() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllItem({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllItem(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -246,9 +256,14 @@ async function masterRoutes(fastify, opts) {
   });
 
   fastify.get('/modifiers', {
-    preHandler: [fastify.checkPermission(['CanManageModifier'])],
+    preHandler: [fastify.checkPermission(['CanManageItem', 'CanViewMenu'])],
     handler: async (request, reply) => {
-      return { data: await service.getAllModifier() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllModifier({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllModifier(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -351,7 +366,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/tables', {
     preHandler: [fastify.checkPermission(['CanManageTable', 'CanViewTable'])],
     handler: async (request, reply) => {
-      return { data: await service.getAllTable() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllTable({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllTable(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -405,7 +425,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/taxes', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllTax() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllTax({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllTax(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -457,7 +482,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/discounts', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllDiscount() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllDiscount({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllDiscount(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -512,9 +542,14 @@ async function masterRoutes(fastify, opts) {
   });
 
   fastify.get('/vouchers', {
-    preHandler: [fastify.checkPermission(['CanManageVoucher'])],
+    preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllVoucher() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllVoucher({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllVoucher(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -572,7 +607,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/payment-methods', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllPaymentMethod() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllPaymentMethod({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllPaymentMethod(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -625,7 +665,12 @@ async function masterRoutes(fastify, opts) {
   fastify.get('/shifts', {
     preHandler: [fastify.authenticate],
     handler: async (request, reply) => {
-      return { data: await service.getAllShift() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllShift({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllShift(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -677,9 +722,14 @@ async function masterRoutes(fastify, opts) {
   });
 
   fastify.get('/customers', {
-    preHandler: [fastify.checkPermission(['CanManageCustomer'])],
+    preHandler: [fastify.checkPermission(['CanViewCustomer'])],
     handler: async (request, reply) => {
-      return { data: await service.getAllCustomer() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllCustomer({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllCustomer(),
+      ]);
+      return { data, total };
     },
   });
 
@@ -731,9 +781,14 @@ async function masterRoutes(fastify, opts) {
   });
 
   fastify.get('/media', {
-    preHandler: [fastify.checkPermission(['CanManageMedia'])],
+    preHandler: [fastify.checkPermission(['CanManageItem'])],
     handler: async (request, reply) => {
-      return { data: await service.getAllMedia() };
+      const { limit, offset } = request.query;
+      const [data, { total }] = await Promise.all([
+        service.getAllMedia({ limit: limit ? parseInt(limit) : undefined, offset: offset ? parseInt(offset) : undefined }),
+        service.countAllMedia(),
+      ]);
+      return { data, total };
     },
   });
 

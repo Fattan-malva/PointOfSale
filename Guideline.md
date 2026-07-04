@@ -71,8 +71,9 @@ Kembangkan `backend/` per modul agar mudah dipelihara:
 3. Transaction (order, pembayaran, KDS, shift)
 4. Inventory (supplier, purchase, stok, resep)
 5. CRM (member, poin, voucher, favorit, alamat, notifikasi)
-6. Reporting (laporan & dashboard)
-7. System (audit log, activity log, media, AppConfig)
+6. Promotion (BuyXGetY, Discount, HappyHour, Cashback)
+7. Reporting (laporan & dashboard)
+8. System (audit log, activity log, media, AppConfig)
 
 Setiap modul idealnya memiliki service/repository sendiri di dalam `backend/src/modules/<modul>/` agar tidak saling tercampur.
 

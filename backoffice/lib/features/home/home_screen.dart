@@ -5,10 +5,20 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_typography.dart';
 import '../auth/auth_provider.dart';
 import 'dashboard_provider.dart';
-import '../inventory/inventory_screen.dart';
 import '../employee/employee_screen.dart';
 import '../orders/orders_screen.dart';
 import '../reports/reports_screen.dart';
+import '../branch/branch_screen.dart';
+import '../profile/profile_screen.dart';
+import '../settings/settings_screen.dart';
+import '../role/role_screen.dart';
+import '../categories/category_screen.dart';
+import '../items/item_screen.dart';
+import '../packages/package_screen.dart';
+import '../modifiers/modifier_screen.dart';
+import '../tables/table_screen.dart';
+import '../taxes/tax_screen.dart';
+import '../discounts/discount_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -19,14 +29,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
-
-  final List<NavigationItem> _navItems = [
-    NavigationItem(Icons.dashboard, 'Dashboard'),
-    NavigationItem(Icons.inventory, 'Inventory'),
-    NavigationItem(Icons.people, 'Employees'),
-    NavigationItem(Icons.receipt_long, 'Orders'),
-    NavigationItem(Icons.bar_chart, 'Reports'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             onSelected: (v) {
-              if (v == 'logout') ref.read(authStateProvider.notifier).logout();
+              if (v == 'logout') {
+                ref.read(authStateProvider.notifier).logout();
+              } else if (v == 'profile') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+              } else if (v == 'settings') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+              }
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'profile', child: Text('Profile')),
@@ -81,19 +89,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             decoration: const BoxDecoration(color: AppColors.accent),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _navItems.length,
-              itemBuilder: (_, i) => ListTile(
-                leading: Icon(_navItems[i].icon),
-                title: Text(_navItems[i].label),
-                selected: _selectedIndex == i,
-                selectedTileColor: AppColors.accentSoft,
-                selectedColor: AppColors.accent,
-                onTap: () {
-                  setState(() => _selectedIndex = i);
-                  Navigator.pop(context);
-                },
-              ),
+            child: ListView(
+              children: [
+                _drawerItem(Icons.dashboard, 'Dashboard', 0),
+                _sectionHeader('MASTER DATA'),
+                _drawerItem(Icons.category, 'Categories', 1),
+                _drawerItem(Icons.inventory, 'Items', 2),
+                _drawerItem(Icons.inventory_2, 'Packages', 3),
+                _drawerItem(Icons.tune, 'Modifiers', 4),
+                _drawerItem(Icons.table_restaurant, 'Tables', 5),
+                _sectionHeader('PRICING'),
+                _drawerItem(Icons.receipt_long, 'Tax', 6),
+                _drawerItem(Icons.local_offer, 'Discounts', 7),
+                _sectionHeader('OPERATIONS'),
+                _drawerItem(Icons.people, 'Employees', 8),
+                _drawerItem(Icons.receipt, 'Orders', 9),
+                _drawerItem(Icons.store, 'Branches', 10),
+                _sectionHeader('INSIGHTS'),
+                _drawerItem(Icons.bar_chart, 'Reports', 11),
+                _drawerItem(Icons.security, 'Roles', 12),
+              ],
             ),
           ),
           const Divider(),
@@ -107,13 +122,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(title,
+        style: AppTypography.caption.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerItem(IconData icon, String label, int index) {
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, size: 20),
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      selected: _selectedIndex == index,
+      selectedTileColor: AppColors.accentSoft,
+      selectedColor: AppColors.accent,
+      onTap: () {
+        setState(() => _selectedIndex = index);
+        Navigator.pop(context);
+      },
+    );
+  }
+
   Widget _buildBody(AsyncValue<DashboardStats> statsAsync) {
     switch (_selectedIndex) {
       case 0: return _buildDashboard(statsAsync);
-      case 1: return const InventoryScreen();
-      case 2: return const EmployeeScreen();
-      case 3: return const OrdersScreen();
-      case 4: return const ReportsScreen();
+      case 1: return const CategoryScreen();
+      case 2: return const ItemScreen();
+      case 3: return const PackageScreen();
+      case 4: return const ModifierScreen();
+      case 5: return const TableScreen();
+      case 6: return const TaxScreen();
+      case 7: return const DiscountScreen();
+      case 8: return const EmployeeScreen();
+      case 9: return const OrdersScreen();
+      case 10: return const BranchScreen();
+      case 11: return const ReportsScreen();
+      case 12: return const RoleScreen();
       default: return _buildDashboard(statsAsync);
     }
   }
@@ -169,22 +220,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ActionChip(
           avatar: const Icon(Icons.add, size: 18),
           label: const Text('Add Item'),
-          onPressed: () => setState(() => _selectedIndex = 1),
+          onPressed: () => setState(() => _selectedIndex = 2),
+        ),
+        ActionChip(
+          avatar: const Icon(Icons.inventory_2, size: 18),
+          label: const Text('Add Package'),
+          onPressed: () => setState(() => _selectedIndex = 3),
         ),
         ActionChip(
           avatar: const Icon(Icons.person_add, size: 18),
           label: const Text('Add Employee'),
-          onPressed: () => setState(() => _selectedIndex = 2),
+          onPressed: () => setState(() => _selectedIndex = 8),
         ),
         ActionChip(
           avatar: const Icon(Icons.receipt, size: 18),
           label: const Text('View Orders'),
-          onPressed: () => setState(() => _selectedIndex = 3),
+          onPressed: () => setState(() => _selectedIndex = 9),
         ),
         ActionChip(
           avatar: const Icon(Icons.assessment, size: 18),
           label: const Text('Reports'),
-          onPressed: () => setState(() => _selectedIndex = 4),
+          onPressed: () => setState(() => _selectedIndex = 11),
         ),
       ],
     );
@@ -192,19 +248,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildRecentOrders() {
     return Card(
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 5,
-        itemBuilder: (_, i) => ListTile(
-          leading: CircleAvatar(
-            backgroundColor: AppColors.accentSoft,
-            child: const Icon(Icons.receipt, size: 20, color: AppColors.accent),
-          ),
-          title: Text('Order #${2026000 + i}'),
-          subtitle: Text('${i + 1} hours ago'),
-          trailing: Text('Rp ${_fmt(((i + 1) * 50000).toDouble())}', style: const TextStyle(fontWeight: FontWeight.bold)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Recent orders from API', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
       ),
     );
   }

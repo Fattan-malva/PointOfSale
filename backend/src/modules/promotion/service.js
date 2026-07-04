@@ -5,8 +5,12 @@ class PromotionService {
     this.repo = new PromotionRepository();
   }
 
-  async getAll(filters) {
+  async getAll(filters = {}) {
     return this.repo.findAll(filters);
+  }
+
+  async countAll(filters = {}) {
+    return this.repo.countAll(filters);
   }
 
   async getById(id) {

@@ -37,8 +37,9 @@ Semua aplikasi mengakses backend yang sama melalui REST API. Tidak ada aplikasi 
 3. **Transaction Module** — order, detail order, modifier order, pembayaran, status dapur (KDS), histori meja, shift.
 4. **Inventory Module** — supplier, pembelian, stok, pergerakan stok, resep, penggunaan bahan.
 5. **CRM Module** — member, poin, voucher, favorit, alamat, notifikasi pelanggan.
-6. **Reporting Module** — laporan penjualan, stok, kasir, shift, dashboard.
-7. **System Module** — audit log, activity log, media, pengaturan (`AppConfig`).
+6. **Promotion Module** — BuyXGetY, Discount, HappyHour, Cashback.
+7. **Reporting Module** — laporan penjualan, stok, kasir, shift, dashboard.
+8. **System Module** — audit log, activity log, media, pengaturan (`AppConfig`).
 
 ## 6. Kebutuhan Fungsional Utama
 

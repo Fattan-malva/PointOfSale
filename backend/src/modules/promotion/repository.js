@@ -6,7 +6,16 @@ class PromotionRepository {
     let query = db('Promotion').orderBy('Priority', 'desc');
     if (filters.IsActive !== undefined) query = query.where('IsActive', filters.IsActive);
     if (filters.PromotionType) query = query.where('PromotionType', filters.PromotionType);
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
     return query;
+  }
+
+  async countAll(filters = {}) {
+    let query = db('Promotion');
+    if (filters.IsActive !== undefined) query = query.where('IsActive', filters.IsActive);
+    if (filters.PromotionType) query = query.where('PromotionType', filters.PromotionType);
+    return query.count('PromotionID as total').first();
   }
 
   async findById(id) {

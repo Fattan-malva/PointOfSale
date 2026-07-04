@@ -2,8 +2,15 @@ const db = require('../../db');
 const uuidv7 = require('../../helpers/uuidv7');
 
 class InventoryRepository {
-  async findAllSupplier() {
-    return db('Supplier').select('*').orderBy('SupplierName');
+  async findAllSupplier({ limit, offset } = {}) {
+    let query = db('Supplier').select('*').orderBy('SupplierName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllSupplier() {
+    return db('Supplier').count('SupplierID as total').first();
   }
 
   async findSupplierById(id) {
@@ -43,8 +50,17 @@ class InventoryRepository {
 
     if (filters.Status) query = query.where('Purchase.Status', filters.Status);
     if (filters.BranchID) query = query.where('Purchase.BranchID', filters.BranchID);
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
 
     return query.orderBy('Purchase.CreatedAt', 'desc');
+  }
+
+  async countAllPurchase(filters = {}) {
+    let query = db('Purchase');
+    if (filters.Status) query = query.where('Status', filters.Status);
+    if (filters.BranchID) query = query.where('BranchID', filters.BranchID);
+    return query.count('PurchaseID as total').first();
   }
 
   async createPurchase(data) {
@@ -89,8 +105,17 @@ class InventoryRepository {
 
     if (filters.BranchID) query = query.where('Stock.BranchID', filters.BranchID);
     if (filters.LowStock) query = query.whereRaw('Stock.CurrentStock <= Stock.MinStock');
+    if (filters.limit) query = query.limit(filters.limit);
+    if (filters.offset) query = query.offset(filters.offset);
 
     return query.orderBy('Item.ItemName');
+  }
+
+  async countAllStock(filters = {}) {
+    let query = db('Stock');
+    if (filters.BranchID) query = query.where('BranchID', filters.BranchID);
+    if (filters.LowStock) query = query.whereRaw('CurrentStock <= MinStock');
+    return query.count('StockID as total').first();
   }
 
   async upsertStock(data) {
@@ -138,11 +163,18 @@ class InventoryRepository {
       .first();
   }
 
-  async findAllRecipe() {
-    return db('Recipe')
+  async findAllRecipe({ limit, offset } = {}) {
+    let query = db('Recipe')
       .join('Item', 'Recipe.ItemID', 'Item.ItemID')
       .select('Recipe.*', 'Item.ItemName', 'Item.ItemCode')
       .orderBy('Recipe.RecipeName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllRecipe() {
+    return db('Recipe').count('RecipeID as total').first();
   }
 
   async createRecipe(data) {

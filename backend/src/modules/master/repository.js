@@ -2,8 +2,15 @@ const db = require('../../db');
 const uuidv7 = require('../../helpers/uuidv7');
 
 class MasterRepository {
-  async findAllCategory() {
-    return db('Category').select('*').orderBy('SortOrder');
+  async findAllCategory({ limit, offset } = {}) {
+    let query = db('Category').select('*').orderBy('SortOrder');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllCategory() {
+    return db('Category').count('CategoryID as total').first();
   }
 
   async findCategoryById(id) {
@@ -26,11 +33,18 @@ class MasterRepository {
     return db('Category').where('CategoryID', id).del();
   }
 
-  async findAllItem() {
-    return db('Item')
+  async findAllItem({ limit, offset } = {}) {
+    let query = db('Item')
       .leftJoin('Category', 'Item.CategoryID', 'Category.CategoryID')
       .select('Item.*', 'Category.CategoryName')
       .orderBy('Item.ItemName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllItem() {
+    return db('Item').count('ItemID as total').first();
   }
 
   async findItemById(id) {
@@ -61,8 +75,15 @@ class MasterRepository {
     return db('Item').where('ItemID', id).del();
   }
 
-  async findAllModifier() {
-    return db('Modifier').select('*').orderBy('ModifierName');
+  async findAllModifier({ limit, offset } = {}) {
+    let query = db('Modifier').select('*').orderBy('ModifierName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllModifier() {
+    return db('Modifier').count('ModifierID as total').first();
   }
 
   async findModifierById(id) {
@@ -147,11 +168,18 @@ class MasterRepository {
     return db('PackageDetail').where('PackageDetailID', id).del();
   }
 
-  async findAllTable() {
-    return db('Table')
+  async findAllTable({ limit, offset } = {}) {
+    let query = db('Table')
       .join('Branch', 'Table.BranchID', 'Branch.BranchID')
       .select('Table.*', 'Branch.BranchName')
       .orderBy('Table.TableCode');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllTable() {
+    return db('Table').count('TableID as total').first();
   }
 
   async findTableById(id) {
@@ -182,8 +210,15 @@ class MasterRepository {
     return db('Table').where('TableID', id).del();
   }
 
-  async findAllTax() {
-    return db('Tax').select('*').orderBy('TaxName');
+  async findAllTax({ limit, offset } = {}) {
+    let query = db('Tax').select('*').orderBy('TaxName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllTax() {
+    return db('Tax').count('TaxID as total').first();
   }
 
   async findTaxById(id) {
@@ -206,8 +241,15 @@ class MasterRepository {
     return db('Tax').where('TaxID', id).del();
   }
 
-  async findAllDiscount() {
-    return db('Discount').select('*').orderBy('DiscountName');
+  async findAllDiscount({ limit, offset } = {}) {
+    let query = db('Discount').select('*').orderBy('DiscountName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllDiscount() {
+    return db('Discount').count('DiscountID as total').first();
   }
 
   async findDiscountById(id) {
@@ -230,8 +272,15 @@ class MasterRepository {
     return db('Discount').where('DiscountID', id).del();
   }
 
-  async findAllVoucher() {
-    return db('Voucher').select('*').orderBy('VoucherName');
+  async findAllVoucher({ limit, offset } = {}) {
+    let query = db('Voucher').select('*').orderBy('VoucherName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllVoucher() {
+    return db('Voucher').count('VoucherID as total').first();
   }
 
   async findVoucherById(id) {
@@ -258,8 +307,15 @@ class MasterRepository {
     return db('Voucher').where('VoucherID', id).del();
   }
 
-  async findAllPaymentMethod() {
-    return db('PaymentMethod').select('*').orderBy('MethodName');
+  async findAllPaymentMethod({ limit, offset } = {}) {
+    let query = db('PaymentMethod').select('*').orderBy('MethodName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllPaymentMethod() {
+    return db('PaymentMethod').count('PaymentMethodID as total').first();
   }
 
   async findPaymentMethodById(id) {
@@ -282,8 +338,15 @@ class MasterRepository {
     return db('PaymentMethod').where('PaymentMethodID', id).del();
   }
 
-  async findAllShift() {
-    return db('Shift').select('*').orderBy('StartTime');
+  async findAllShift({ limit, offset } = {}) {
+    let query = db('Shift').select('*').orderBy('StartTime');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllShift() {
+    return db('Shift').count('ShiftID as total').first();
   }
 
   async findShiftById(id) {
@@ -306,8 +369,15 @@ class MasterRepository {
     return db('Shift').where('ShiftID', id).del();
   }
 
-  async findAllCustomer() {
-    return db('MstCustomer').select('*').orderBy('FullName');
+  async findAllCustomer({ limit, offset } = {}) {
+    let query = db('MstCustomer').select('*').orderBy('FullName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllCustomer() {
+    return db('MstCustomer').count('CustomerID as total').first();
   }
 
   async findCustomerById(id) {
@@ -334,8 +404,15 @@ class MasterRepository {
     return db('MstCustomer').where('CustomerID', id).del();
   }
 
-  async findAllMedia() {
-    return db('Media').select('*').orderBy('FileName');
+  async findAllMedia({ limit, offset } = {}) {
+    let query = db('Media').select('*').orderBy('FileName');
+    if (limit) query = query.limit(limit);
+    if (offset) query = query.offset(offset);
+    return query;
+  }
+
+  async countAllMedia() {
+    return db('Media').count('MediaID as total').first();
   }
 
   async findMediaById(id) {
