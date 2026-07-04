@@ -134,14 +134,14 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF787774)),
+          const Icon(Icons.search_rounded, size: 18, color: Color(0xFF111111)),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
                 hintText: 'Search items...',
-                hintStyle: TextStyle(fontSize: 14, color: Color(0xFFA8A8AE)),
+                hintStyle: TextStyle(fontSize: 14, color: AppColors.textDisabled),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,

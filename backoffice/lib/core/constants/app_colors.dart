@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 class AppColors {
   // Netral (Black & White)
   static const Color bg = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFF7F7F8);
+  static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceRaised = Color(0xFFFFFFFF);
-  static const Color border = Color(0xFFE7E7EA);
+  static const Color border = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF111113);
   static const Color textSecondary = Color(0xFF5C5C63);
   static const Color textDisabled = Color(0xFFA8A8AE);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/widgets/app_modal.dart';
+import '../../core/constants/app_colors.dart';
 import '../../models/item_model.dart';
 import '../../models/category_model.dart';
 import '../../models/tax_model.dart';
@@ -217,27 +218,23 @@ class _RespRow extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final child in children)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: child is SizedBox
-                      ? child
-                      : child,
-                ),
+              for (int i = 0; i < children.length; i++) ...[
+                if (children[i] is! SizedBox) children[i],
+                if (i < children.length - 1 && children[i] is! SizedBox)
+                  const SizedBox(height: 16),
+              ],
             ],
           );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (int i = 0; i < children.length; i++)
+            for (int i = 0; i < children.length; i++) ...[
               if (children[i] is! SizedBox)
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: i < children.length - 1 ? 16 : 0),
-                    child: children[i],
-                  ),
-                ),
+                Expanded(child: children[i]),
+              if (i < children.length - 1 && children[i] is! SizedBox && children[i + 1] is! SizedBox)
+                const SizedBox(width: 16),
+            ],
           ],
         );
       },
@@ -284,7 +281,7 @@ class _ModalTextField extends StatelessWidget {
         maxLines: maxLines,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFA8A8AE)),
+          hintStyle: const TextStyle(fontSize: 14, color: AppColors.textDisabled),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -320,7 +317,7 @@ class _CurrencyField extends StatelessWidget {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFA8A8AE)),
+                hintStyle: const TextStyle(fontSize: 14, color: AppColors.textDisabled),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -374,7 +371,7 @@ class _CategoryPickerState extends State<_CategoryPicker> {
             child: DropdownButton<String>(
               value: _selected,
               isExpanded: true,
-              hint: const Text('Select category', style: TextStyle(fontSize: 14, color: Color(0xFFA8A8AE))),
+              hint: const Text('Select category', style: TextStyle(fontSize: 14, color: Color(0xFF111111))),
               items: [
                 const DropdownMenuItem(value: null, child: Text('No category', style: TextStyle(fontSize: 14, color: Color(0xFF787774)))),
                 ...widget.categories.map((c) => DropdownMenuItem(
@@ -387,7 +384,7 @@ class _CategoryPickerState extends State<_CategoryPicker> {
                 widget.onSelected(v);
               },
               style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             ),
           ),
         ),
@@ -459,7 +456,7 @@ class _CheckboxGroupState extends State<_CheckboxGroup> {
                       Icon(
                         checked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
                         size: 16,
-                        color: checked ? const Color(0xFF111111) : const Color(0xFFA8A8AE),
+                        color: checked ? const Color(0xFF111111) : const Color(0xFF111111),
                       ),
                       const SizedBox(width: 6),
                       Text(

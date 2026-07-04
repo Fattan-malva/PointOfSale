@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
 class AppModalConfig {
   final String title;
@@ -262,7 +263,7 @@ class ModalField extends StatelessWidget {
               hintText: hint,
               hintStyle: const TextStyle(
                 fontSize: 14,
-                color: Color(0xFFA8A8AE),
+                color: AppColors.textDisabled,
               ),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
