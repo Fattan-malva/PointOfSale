@@ -6,15 +6,15 @@ import '../../models/item_model.dart';
 
 class PackageModal {
   static Future<Map<String, dynamic>?> create(
-    BuildContext context,
-  ) {
+    BuildContext context, {
+    List<ItemModel> availableItems = const [],
+  }) {
     final codeCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
     final loading = ValueNotifier(false);
     final selectedItems = <ItemModel>[];
     final searchCtrl = TextEditingController();
-    final availableItems = <ItemModel>[]; // Ini akan diisi dari data source
 
     return showDialog<Map<String, dynamic>>(
       context: context,
@@ -54,8 +54,9 @@ class PackageModal {
 
   static Future<Map<String, dynamic>?> edit(
     BuildContext context,
-    ItemModel pkg,
-  ) {
+    ItemModel pkg, {
+    List<ItemModel> availableItems = const [],
+  }) {
     final codeCtrl = TextEditingController(text: pkg.itemCode);
     final nameCtrl = TextEditingController(text: pkg.name);
     final priceCtrl = TextEditingController(text: pkg.price.toStringAsFixed(0));
@@ -63,7 +64,6 @@ class PackageModal {
     final selectedItems =
         <ItemModel>[]; // Ini akan diisi dengan item yang sudah dipilih
     final searchCtrl = TextEditingController();
-    final availableItems = <ItemModel>[]; // Ini akan diisi dari data source
 
     return showDialog<Map<String, dynamic>>(
       context: context,

@@ -62,14 +62,22 @@ class PackageNotifier extends StateNotifier<PackageState> {
   PackageNotifier(this._repository, this._itemRepository)
       : super(PackageState()) {
     loadPackages();
+    _loadAvailableItems();
   }
 
   Future<void> refresh() async {
-    await loadPackages();
+    await Future.wait([loadPackages(), _loadAvailableItems()]);
     final selectedId = state.selectedPackageId;
     if (selectedId != null) {
       await loadPackageDetails(selectedId);
     }
+  }
+
+  Future<void> _loadAvailableItems() async {
+    try {
+      final items = await _itemRepository.getItems(itemType: 'Product');
+      state = state.copyWith(availableItems: items);
+    } catch (_) {}
   }
 
   Future<void> loadPackages() async {

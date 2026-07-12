@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_spacing.dart';
 import '../../models/item_model.dart';
 import 'package_provider.dart';
 import 'package_modal.dart';
@@ -439,7 +437,15 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
   }
 
   Future<void> _onAddPackage() async {
-    final result = await PackageModal.create(context);
+    final state = ref.read(packageProvider);
+    final items = state.availableItems.isNotEmpty
+        ? state.availableItems
+        : await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+
+    final result = await PackageModal.create(
+      context,
+      availableItems: items,
+    );
     if (result == null || !context.mounted) return;
 
     final ok = await ref.read(packageProvider.notifier).createPackage({
@@ -453,7 +459,16 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
   }
 
   Future<void> _onEditPackage(ItemModel pkg) async {
-    final result = await PackageModal.edit(context, pkg);
+    final state = ref.read(packageProvider);
+    final items = state.availableItems.isNotEmpty
+        ? state.availableItems
+        : await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+
+    final result = await PackageModal.edit(
+      context,
+      pkg,
+      availableItems: items,
+    );
     if (result == null || !context.mounted) return;
 
     final ok = await ref.read(packageProvider.notifier).updatePackage(pkg.id, {
