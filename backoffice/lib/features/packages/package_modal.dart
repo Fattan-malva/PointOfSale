@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_modal.dart';
 import '../../models/item_model.dart';
+import '../../models/tax_model.dart';
+import '../../models/discount_model.dart';
+import '../../models/package_detail_model.dart';
 
 class PackageModal {
   static Future<Map<String, dynamic>?> create(
     BuildContext context, {
     List<ItemModel> availableItems = const [],
+    List<TaxModel> allTaxes = const [],
+    List<DiscountModel> allDiscounts = const [],
   }) {
     final codeCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
@@ -15,7 +20,6 @@ class PackageModal {
     final loading = ValueNotifier(false);
     final selectedItems = <ItemModel>[];
     final itemQuantities = <String, int>{};
-    bool isPriceManuallyEdited = false;
 
     return showDialog<Map<String, dynamic>>(
       context: context,
@@ -31,44 +35,16 @@ class PackageModal {
           availableItems: availableItems,
           selectedItems: selectedItems,
           itemQuantities: itemQuantities,
-          isPriceManuallyEdited: isPriceManuallyEdited,
-          onSave: () async {
-            final code = codeCtrl.text.trim();
-            final name = nameCtrl.text.trim();
-            final price = double.tryParse(priceCtrl.text);
-
-            if (code.isEmpty || name.isEmpty || price == null || price <= 0) {
-              return;
-            }
-
+          allTaxes: allTaxes,
+          allDiscounts: allDiscounts,
+          selectedTaxIds: const {},
+          selectedDiscountIds: const {},
+          onSave: (result) async {
             loading.value = true;
             await Future.delayed(const Duration(milliseconds: 100));
             loading.value = false;
-
-            // Build package data for API
-            final packageData = {
-              'ItemCode': code,
-              'ItemName': name,
-              'Price': price,
-              'ItemType': 'Package',
-              'IsActive': true,
-            };
-
-            // Build package details
-            final details = selectedItems.map((item) {
-              return {
-                'ItemID': item.id,
-                'Qty': itemQuantities[item.id] ?? 1,
-                'UnitPrice': item.price,
-              };
-            }).toList();
-
             if (context.mounted) {
-              Navigator.pop(context, {
-                'package': packageData,
-                'details': details,
-                'priceManuallySet': isPriceManuallyEdited,
-              });
+              Navigator.pop(context, result);
             }
           },
         );
@@ -81,6 +57,8 @@ class PackageModal {
     ItemModel pkg, {
     List<ItemModel> availableItems = const [],
     List<PackageDetailModel> existingDetails = const [],
+    List<TaxModel> allTaxes = const [],
+    List<DiscountModel> allDiscounts = const [],
   }) {
     final codeCtrl = TextEditingController(text: pkg.itemCode);
     final nameCtrl = TextEditingController(text: pkg.name);
@@ -89,7 +67,13 @@ class PackageModal {
     final loading = ValueNotifier(false);
     final selectedItems = <ItemModel>[];
     final itemQuantities = <String, int>{};
-    bool isPriceManuallyEdited = false;
+
+    print('=== EDIT PACKAGE MODAL ===');
+    print('Existing Details count: ${existingDetails.length}');
+    for (var detail in existingDetails) {
+      print(
+          'Detail - ItemID: ${detail.itemId}, Qty: ${detail.qty}, UnitPrice: ${detail.unitPrice}');
+    }
 
     // Load existing package items
     for (var detail in existingDetails) {
@@ -104,11 +88,34 @@ class PackageModal {
           createdAt: DateTime.now(),
         ),
       );
+
       if (item.id.isNotEmpty) {
         selectedItems.add(item);
         itemQuantities[item.id] = detail.qty;
+        print('Item found: ${item.name} (${item.id}) - Qty: ${detail.qty}');
+      } else {
+        print('Item not found: ${detail.itemId}');
+        // Try case-insensitive match
+        final altItem = availableItems.firstWhere(
+          (e) => e.id.toLowerCase() == detail.itemId.toLowerCase(),
+          orElse: () => ItemModel(
+            id: '',
+            itemCode: '',
+            name: '',
+            price: 0,
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        if (altItem.id.isNotEmpty) {
+          selectedItems.add(altItem);
+          itemQuantities[altItem.id] = detail.qty;
+          print('Item found with case-insensitive: ${altItem.name}');
+        }
       }
     }
+
+    print('Selected Items count: ${selectedItems.length}');
 
     return showDialog<Map<String, dynamic>>(
       context: context,
@@ -124,42 +131,16 @@ class PackageModal {
           availableItems: availableItems,
           selectedItems: selectedItems,
           itemQuantities: itemQuantities,
-          isPriceManuallyEdited: isPriceManuallyEdited,
-          onSave: () async {
-            final code = codeCtrl.text.trim();
-            final name = nameCtrl.text.trim();
-            final price = double.tryParse(priceCtrl.text);
-
-            if (code.isEmpty || name.isEmpty || price == null || price <= 0) {
-              return;
-            }
-
+          allTaxes: allTaxes,
+          allDiscounts: allDiscounts,
+          selectedTaxIds: pkg.taxes.map((t) => t.id).toSet(),
+          selectedDiscountIds: pkg.discounts.map((d) => d.id).toSet(),
+          onSave: (result) async {
             loading.value = true;
             await Future.delayed(const Duration(milliseconds: 100));
             loading.value = false;
-
-            // Build package data for API
-            final packageData = {
-              'ItemCode': code,
-              'ItemName': name,
-              'Price': price,
-            };
-
-            // Build package details
-            final details = selectedItems.map((item) {
-              return {
-                'ItemID': item.id,
-                'Qty': itemQuantities[item.id] ?? 1,
-                'UnitPrice': item.price,
-              };
-            }).toList();
-
             if (context.mounted) {
-              Navigator.pop(context, {
-                'package': packageData,
-                'details': details,
-                'priceManuallySet': isPriceManuallyEdited,
-              });
+              Navigator.pop(context, result);
             }
           },
         );
@@ -248,8 +229,11 @@ class _PackageFormDialog extends StatefulWidget {
   final List<ItemModel> availableItems;
   final List<ItemModel> selectedItems;
   final Map<String, int> itemQuantities;
-  final bool isPriceManuallyEdited;
-  final VoidCallback onSave;
+  final List<TaxModel> allTaxes;
+  final List<DiscountModel> allDiscounts;
+  final Set<String> selectedTaxIds;
+  final Set<String> selectedDiscountIds;
+  final ValueChanged<Map<String, dynamic>> onSave;
 
   const _PackageFormDialog({
     required this.mode,
@@ -261,7 +245,10 @@ class _PackageFormDialog extends StatefulWidget {
     required this.availableItems,
     required this.selectedItems,
     required this.itemQuantities,
-    required this.isPriceManuallyEdited,
+    required this.allTaxes,
+    required this.allDiscounts,
+    required this.selectedTaxIds,
+    required this.selectedDiscountIds,
     required this.onSave,
   });
 
@@ -273,7 +260,9 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
   late List<ItemModel> _filteredItems;
   late List<ItemModel> _selectedItems;
   late Map<String, int> _itemQuantities;
-  late bool _isPriceManuallyEdited;
+  late Set<String> _taxIds;
+  late Set<String> _discountIds;
+  bool _isPriceManuallyEdited = false;
   final _quantityControllers = <String, TextEditingController>{};
 
   @override
@@ -282,19 +271,28 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
     _filteredItems = List.from(widget.availableItems);
     _selectedItems = List.from(widget.selectedItems);
     _itemQuantities = Map.from(widget.itemQuantities);
-    _isPriceManuallyEdited = widget.isPriceManuallyEdited;
+    _taxIds = Set.from(widget.selectedTaxIds);
+    _discountIds = Set.from(widget.selectedDiscountIds);
+
+    print('=== PACKAGE FORM DIALOG INIT ===');
+    print('Mode: ${widget.mode}');
+    print('Selected Items: ${_selectedItems.length}');
 
     // Initialize quantity controllers for selected items
     for (var item in _selectedItems) {
       _quantityControllers[item.id] = TextEditingController(
         text: (_itemQuantities[item.id] ?? 1).toString(),
       );
+      print('Item: ${item.name} - Qty: ${_itemQuantities[item.id] ?? 1}');
     }
 
-    // Calculate initial price if not manually edited
-    if (!_isPriceManuallyEdited) {
-      _updatePrice();
+    // In edit mode, check if price is manually edited
+    if (widget.mode == _DialogMode.edit) {
+      final existing = double.tryParse(widget.priceCtrl.text) ?? 0;
+      _isPriceManuallyEdited = (existing - _calculateSubtotal()).abs() > 0.01;
     }
+
+    _updatePrice();
   }
 
   @override
@@ -305,7 +303,7 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
     super.dispose();
   }
 
-  double _calculateTotalPrice() {
+  double _calculateSubtotal() {
     double total = 0;
     for (var item in _selectedItems) {
       final qty = _itemQuantities[item.id] ?? 1;
@@ -314,9 +312,48 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
     return total;
   }
 
+  double _packagePrice() => double.tryParse(widget.priceCtrl.text) ?? 0;
+
+  _Breakdown _breakdown() {
+    final double subtotalPrice = _calculateSubtotal();
+    final double packagePrice = _packagePrice();
+
+    double discountAmount = 0;
+    for (final d
+        in widget.allDiscounts.where((d) => _discountIds.contains(d.id))) {
+      double value;
+      if (d.discountType == 'Percentage') {
+        value = packagePrice * d.discountValue / 100;
+        if (d.maxDiscount != null && value > d.maxDiscount!) {
+          value = d.maxDiscount!;
+        }
+      } else {
+        value = d.discountValue;
+      }
+      discountAmount += value;
+    }
+    if (discountAmount > packagePrice) discountAmount = packagePrice;
+
+    final double taxable = packagePrice - discountAmount;
+    double taxAmount = 0;
+    for (final t in widget.allTaxes.where((t) => _taxIds.contains(t.id))) {
+      taxAmount += taxable * t.rate / 100;
+    }
+
+    final double finalPrice = packagePrice - discountAmount + taxAmount;
+
+    return _Breakdown(
+      subtotalPrice: subtotalPrice,
+      packagePrice: packagePrice,
+      discountAmount: discountAmount,
+      taxAmount: taxAmount,
+      finalPrice: finalPrice,
+    );
+  }
+
   void _updatePrice() {
     if (!_isPriceManuallyEdited) {
-      final total = _calculateTotalPrice();
+      final total = _calculateSubtotal();
       widget.priceCtrl.text = total.toStringAsFixed(0);
     }
   }
@@ -346,6 +383,46 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
     });
   }
 
+  void _handleSave() {
+    final code = widget.codeCtrl.text.trim();
+    final name = widget.nameCtrl.text.trim();
+    final price = double.tryParse(widget.priceCtrl.text);
+
+    if (code.isEmpty || name.isEmpty || price == null || price <= 0) {
+      return;
+    }
+
+    final b = _breakdown();
+
+    final packageData = <String, dynamic>{
+      'ItemCode': code,
+      'ItemName': name,
+      'Price': price,
+      'ItemType': 'Package',
+      'IsActive': true,
+      'SubtotalPrice': b.subtotalPrice,
+      'DiscountAmount': b.discountAmount,
+      'TaxAmount': b.taxAmount,
+      'FinalPrice': b.finalPrice,
+    };
+
+    final details = _selectedItems.map((item) {
+      return {
+        'ItemID': item.id,
+        'Qty': _itemQuantities[item.id] ?? 1,
+        'UnitPrice': item.price,
+      };
+    }).toList();
+
+    widget.onSave({
+      'package': packageData,
+      'Items': details,
+      'details': details,
+      'taxIds': _taxIds.toList(),
+      'discountIds': _discountIds.toList(),
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -355,15 +432,12 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Panel - Available Items
             Expanded(
               flex: 1,
               child: _buildLeftPanel(),
             ),
-            // Divider
             const VerticalDivider(
                 width: 1, thickness: 1, color: Color(0xFFEAEAEA)),
-            // Right Panel - Package Details & Selected Items
             Expanded(
               flex: 1,
               child: _buildRightPanel(),
@@ -422,7 +496,6 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
                     },
                   ),
           ),
-          // Info footer
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Container(
@@ -570,85 +643,124 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Package Details',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.03,
-              color: Color(0xFF111111),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildField('Package Code', widget.codeCtrl),
-          const SizedBox(height: 12),
-          _buildField('Package Name', widget.nameCtrl),
-          const SizedBox(height: 12),
-          _buildPriceField(),
-          const SizedBox(height: 16),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFEAEAEA)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Text(
-                'Selected Items',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF111111),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F6F3),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${_selectedItems.length}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF787774),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           Expanded(
-            child: _selectedItems.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inbox_rounded,
-                            size: 48, color: Color(0xFFEAEAEA)),
-                        SizedBox(height: 12),
-                        Text(
-                          'No items selected',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF787774),
-                          ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Package Details',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.03,
+                      color: Color(0xFF111111),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildField('Package Code', widget.codeCtrl),
+                  const SizedBox(height: 12),
+                  _buildField('Package Name', widget.nameCtrl),
+                  const SizedBox(height: 12),
+                  _buildPriceField(),
+                  const SizedBox(height: 16),
+                  const Divider(
+                      height: 1, thickness: 1, color: Color(0xFFEAEAEA)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text(
+                        'Selected Items',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF111111),
                         ),
-                        Text(
-                          'Select items from the left panel',
-                          style: TextStyle(
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F6F3),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${_selectedItems.length}',
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF787774),
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _selectedItems.length,
-                    itemBuilder: (_, index) {
-                      final item = _selectedItems[index];
-                      return _buildSelectedItemCard(item);
-                    },
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  _selectedItems.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.inbox_rounded,
+                                    size: 48, color: Color(0xFFEAEAEA)),
+                                SizedBox(height: 12),
+                                Text(
+                                  'No items selected',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF787774),
+                                  ),
+                                ),
+                                Text(
+                                  'Select items from the left panel',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF787774),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            for (final item in _selectedItems)
+                              _buildSelectedItemCard(item),
+                          ],
+                        ),
+                  if (widget.allTaxes.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildCheckboxGroup(
+                      label: 'Taxes',
+                      items: widget.allTaxes
+                          .map(
+                              (t) => _CheckItem(t.id, '${t.name} (${t.rate}%)'))
+                          .toList(),
+                      selected: _taxIds,
+                    ),
+                  ],
+                  if (widget.allDiscounts.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildCheckboxGroup(
+                      label: 'Discounts',
+                      items: widget.allDiscounts
+                          .map((d) => _CheckItem(
+                                d.id,
+                                d.discountType == 'Percentage'
+                                    ? '${d.name} (${d.discountValue}%)'
+                                    : '${d.name} (Rp ${d.discountValue.toStringAsFixed(0)})',
+                              ))
+                          .toList(),
+                      selected: _discountIds,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _buildPriceSummary(),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -668,7 +780,7 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
                 valueListenable: widget.loading,
                 builder: (_, isLoading, __) {
                   return FilledButton(
-                    onPressed: isLoading ? null : widget.onSave,
+                    onPressed: isLoading ? null : _handleSave,
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF111111),
                       foregroundColor: Colors.white,
@@ -750,7 +862,6 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
                   ],
                 ),
               ),
-              // Quantity input
               SizedBox(
                 width: 70,
                 child: TextField(
@@ -790,7 +901,6 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
               ),
             ],
           ),
-          // Subtotal per item
           Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -844,70 +954,24 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
   }
 
   Widget _buildPriceField() {
-    final totalPrice = _calculateTotalPrice();
+    final subtotal = _calculateSubtotal();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'PRICE',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.06,
-                color: Color(0xFF787774),
-              ),
-            ),
-            // Manual edit toggle
-            Row(
-              children: [
-                const Text(
-                  'Auto',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF787774),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Switch(
-                  value: _isPriceManuallyEdited,
-                  onChanged: (value) {
-                    setState(() {
-                      _isPriceManuallyEdited = value;
-                      if (!value) {
-                        // Switch to auto: recalculate
-                        final total = _calculateTotalPrice();
-                        widget.priceCtrl.text = total.toStringAsFixed(0);
-                      }
-                    });
-                  },
-                  activeTrackColor: const Color(0xFF111111),
-                  inactiveTrackColor: const Color(0xFFEAEAEA),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                const Text(
-                  'Manual',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF787774),
-                  ),
-                ),
-              ],
-            ),
-          ],
+        const Text(
+          'PACKAGE PRICE',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.06,
+            color: Color(0xFF787774),
+          ),
         ),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: _isPriceManuallyEdited
-                  ? const Color(0xFF111111)
-                  : const Color(0xFFEAEAEA),
-              width: _isPriceManuallyEdited ? 1.5 : 1,
-            ),
+            border: Border.all(color: const Color(0xFFEAEAEA)),
             borderRadius: BorderRadius.circular(6),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -921,7 +985,6 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
                 child: TextField(
                   controller: widget.priceCtrl,
                   keyboardType: TextInputType.number,
-                  enabled: _isPriceManuallyEdited,
                   decoration: const InputDecoration(
                     hintText: '0',
                     hintStyle:
@@ -932,101 +995,207 @@ class _PackageFormDialogState extends State<_PackageFormDialog> {
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 12),
                   ),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _isPriceManuallyEdited
-                        ? const Color(0xFF111111)
-                        : const Color(0xFF787774),
-                  ),
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF111111)),
                   onChanged: (_) {
-                    // Mark as manually edited when user types
-                    if (_isPriceManuallyEdited) {
-                      // Keep manual mode
-                    }
+                    setState(() => _isPriceManuallyEdited = true);
                   },
                 ),
               ),
-              if (!_isPriceManuallyEdited)
-                const Icon(
-                  Icons.lock_rounded,
-                  size: 16,
-                  color: Color(0xFF787774),
+              if (_isPriceManuallyEdited)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isPriceManuallyEdited = false;
+                      widget.priceCtrl.text =
+                          _calculateSubtotal().toStringAsFixed(0);
+                    });
+                  },
+                  child: const Tooltip(
+                    message: 'Reset ke harga otomatis',
+                    child: Icon(Icons.refresh_rounded,
+                        size: 16, color: Color(0xFF787774)),
+                  ),
                 ),
             ],
           ),
         ),
-        if (!_isPriceManuallyEdited && _selectedItems.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Auto-calculated from ${_selectedItems.length} item${_selectedItems.length > 1 ? 's' : ''}: Rp ${totalPrice.toStringAsFixed(0)}',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF787774),
-                fontStyle: FontStyle.italic,
-              ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            _selectedItems.isEmpty
+                ? 'Otomatis terhitung dari subtotal item yang dipilih'
+                : _isPriceManuallyEdited
+                    ? 'Harga manual. Subtotal item: Rp ${subtotal.toStringAsFixed(0)}'
+                    : 'Otomatis dari ${_selectedItems.length} item: Rp ${subtotal.toStringAsFixed(0)}',
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF787774),
+              fontStyle: FontStyle.italic,
             ),
           ),
-        if (_isPriceManuallyEdited && _selectedItems.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Manual override. Auto price: Rp ${totalPrice.toStringAsFixed(0)}',
-              style: const TextStyle(
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCheckboxGroup({
+    required String label,
+    required List<_CheckItem> items,
+    required Set<String> selected,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label.toUpperCase(),
+            style: const TextStyle(
                 fontSize: 11,
-                color: Color(0xFF787774),
-                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.06,
+                color: Color(0xFF787774))),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: items.map((item) {
+            final checked = selected.contains(item.id);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (checked) {
+                    selected.remove(item.id);
+                  } else {
+                    selected.add(item.id);
+                  }
+                });
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: checked ? const Color(0xFFF7F6F3) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: checked
+                        ? const Color(0xFF111111)
+                        : const Color(0xFFEAEAEA),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      checked
+                          ? Icons.check_box_rounded
+                          : Icons.check_box_outline_blank_rounded,
+                      size: 16,
+                      color: const Color(0xFF111111),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: checked ? FontWeight.w500 : FontWeight.w400,
+                        color: checked
+                            ? const Color(0xFF111111)
+                            : const Color(0xFF5C5C63),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        if (_selectedItems.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Add items to auto-calculate price',
-              style: TextStyle(
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceSummary() {
+    final b = _breakdown();
+    String rp(double v) => 'Rp ${v.toStringAsFixed(0)}';
+
+    Widget row(String label, String value, {bool bold = false}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label,
+                style: TextStyle(
+                    fontSize: bold ? 14 : 13,
+                    fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+                    color: const Color(0xFF5C5C63))),
+            Text(value,
+                style: TextStyle(
+                    fontSize: bold ? 14 : 13,
+                    fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                    color: const Color(0xFF111111))),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('PRICE SUMMARY',
+            style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF787774),
-                fontStyle: FontStyle.italic,
-              ),
-            ),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.06,
+                color: Color(0xFF787774))),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F6F3),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: const Color(0xFFEAEAEA)),
           ),
+          child: Column(
+            children: [
+              row('Items Subtotal', rp(b.subtotalPrice)),
+              row('Package Price', rp(b.packagePrice)),
+              row('Discount', '- ${rp(b.discountAmount)}'),
+              row('Tax', '+ ${rp(b.taxAmount)}'),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Divider(height: 1, color: Color(0xFFEAEAEA)),
+              ),
+              row('Final Price', rp(b.finalPrice), bold: true),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-// Package Detail Model
-class PackageDetailModel {
+class _CheckItem {
   final String id;
-  final String packageItemId;
-  final String itemId;
-  final String? itemName;
-  final int qty;
-  final double unitPrice;
-
-  PackageDetailModel({
-    required this.id,
-    required this.packageItemId,
-    required this.itemId,
-    this.itemName,
-    required this.qty,
-    required this.unitPrice,
-  });
-
-  factory PackageDetailModel.fromJson(Map<String, dynamic> json) {
-    return PackageDetailModel(
-      id: json['PackageDetailID'] ?? '',
-      packageItemId: json['PackageItemID'] ?? '',
-      itemId: json['ItemID'] ?? '',
-      itemName: json['ItemName'],
-      qty: json['Qty'] ?? 0,
-      unitPrice: (json['UnitPrice'] ?? 0).toDouble(),
-    );
-  }
+  final String label;
+  const _CheckItem(this.id, this.label);
 }
 
-// Helper widget untuk confirm content
+class _Breakdown {
+  final double subtotalPrice;
+  final double packagePrice;
+  final double discountAmount;
+  final double taxAmount;
+  final double finalPrice;
+
+  const _Breakdown({
+    required this.subtotalPrice,
+    required this.packagePrice,
+    required this.discountAmount,
+    required this.taxAmount,
+    required this.finalPrice,
+  });
+}
+
 class ConfirmContent extends StatelessWidget {
   final String message;
   const ConfirmContent({required this.message, super.key});

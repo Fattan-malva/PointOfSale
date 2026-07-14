@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/item_model.dart';
+import '../../models/package_detail_model.dart';
 import 'package_provider.dart';
 import 'package_modal.dart';
 import '../items/repositories/item_repository.dart';
+import '../taxes/repositories/tax_repository.dart';
+import '../discounts/repositories/discount_repository.dart';
 import '../../core/widgets/backoffice_shimmer.dart';
 
 class PackageScreen extends ConsumerStatefulWidget {
@@ -327,17 +330,24 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
     final items = state.availableItems.isNotEmpty
         ? state.availableItems
         : await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+    final allTaxes = await ref.read(taxRepositoryProvider).getTaxes();
+    final allDiscounts =
+        await ref.read(discountRepositoryProvider).getDiscounts();
 
+    if (!context.mounted) return;
     final result = await PackageModal.create(
       context,
       availableItems: items,
+      allTaxes: allTaxes,
+      allDiscounts: allDiscounts,
     );
     if (result == null || !context.mounted) return;
 
     final ok = await ref.read(packageProvider.notifier).createPackage({
-      'ItemCode': result['ItemCode'],
-      'ItemName': result['ItemName'],
-      'Price': result['Price'],
+      ...result['package'] as Map<String, dynamic>,
+      'Items': result['details'],
+      'taxIds': result['taxIds'],
+      'discountIds': result['discountIds'],
     });
 
     if (!context.mounted) return;
@@ -352,21 +362,50 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
 
   Future<void> _onEditPackage(ItemModel pkg) async {
     final state = ref.read(packageProvider);
+    final itemRepo = ref.read(itemRepositoryProvider);
     final items = state.availableItems.isNotEmpty
         ? state.availableItems
-        : await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
+        : await itemRepo.getItems(itemType: 'Product');
+    final allTaxes = await ref.read(taxRepositoryProvider).getTaxes();
+    final allDiscounts =
+        await ref.read(discountRepositoryProvider).getDiscounts();
 
+    // Enrich package with its taxes/discounts/details
+    ItemModel enriched = pkg;
+    List<PackageDetailModel> existingDetails = [];
+    try {
+      final fresh = await itemRepo.getItem(pkg.id);
+      final taxesRaw = await itemRepo.getItemTaxes(pkg.id);
+      final discountsRaw = await itemRepo.getItemDiscounts(pkg.id);
+      enriched = fresh.copyWith(
+        taxes: taxesRaw.map((e) => ItemTaxInfo.fromJson(e)).toList(),
+        discounts:
+            discountsRaw.map((e) => ItemDiscountInfo.fromJson(e)).toList(),
+      );
+
+      // Fetch package details
+      existingDetails =
+          await ref.read(packageProvider.notifier).fetchDetails(pkg.id);
+    } catch (_) {
+      enriched = pkg;
+    }
+
+    if (!context.mounted) return;
     final result = await PackageModal.edit(
       context,
-      pkg,
+      enriched,
       availableItems: items,
+      existingDetails: existingDetails,
+      allTaxes: allTaxes,
+      allDiscounts: allDiscounts,
     );
     if (result == null || !context.mounted) return;
 
     final ok = await ref.read(packageProvider.notifier).updatePackage(pkg.id, {
-      'ItemCode': result['ItemCode'],
-      'ItemName': result['ItemName'],
-      'Price': result['Price'],
+      ...result['package'] as Map<String, dynamic>,
+      'Items': result['details'],
+      'taxIds': result['taxIds'],
+      'discountIds': result['discountIds'],
     });
 
     if (!context.mounted) return;

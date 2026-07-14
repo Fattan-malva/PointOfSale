@@ -5,21 +5,10 @@ class ItemModel {
   final String? description;
   final double price;
   final double? costPrice;
-
-  // 1. Subtotal Price - Harga dari semua item sebelum diskon & tax
-  //    = SUM(Qty x UnitPrice)
   final double subtotalPrice;
-
-  // 2. Discount Amount - Potongan harga
   final double discountAmount;
-
-  // 3. Tax Amount - Pajak yang berlaku
   final double taxAmount;
-
-  // 4. Final Price - Harga akhir yang dibayar
-  //    = Subtotal Price - Discount + Tax
   final double finalPrice;
-
   final String? categoryId;
   final String? categoryName;
   final String itemType;
@@ -91,11 +80,13 @@ class ItemModel {
           : json['createdAt'] != null
               ? DateTime.parse(json['createdAt'] as String)
               : DateTime.now(),
-      taxes: (json['Taxes'] as List<dynamic>?)
+      taxes: _mapIdsToTaxInfo(json['TaxIds'] as List<dynamic>?) ??
+          (json['Taxes'] as List<dynamic>?)
               ?.map((e) => ItemTaxInfo.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      discounts: (json['Discounts'] as List<dynamic>?)
+      discounts: _mapIdsToDiscountInfo(json['DiscountIds'] as List<dynamic>?) ??
+          (json['Discounts'] as List<dynamic>?)
               ?.map((e) => ItemDiscountInfo.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -171,6 +162,23 @@ class ItemModel {
       branches: branches ?? this.branches,
     );
   }
+}
+
+List<ItemTaxInfo>? _mapIdsToTaxInfo(List<dynamic>? ids) {
+  if (ids == null) return null;
+  return ids
+      .where((e) => e != null)
+      .map((e) => ItemTaxInfo(id: e.toString(), name: '', rate: 0))
+      .toList();
+}
+
+List<ItemDiscountInfo>? _mapIdsToDiscountInfo(List<dynamic>? ids) {
+  if (ids == null) return null;
+  return ids
+      .where((e) => e != null)
+      .map((e) => ItemDiscountInfo(
+          id: e.toString(), name: '', discountType: '', discountValue: 0))
+      .toList();
 }
 
 class ItemTaxInfo {

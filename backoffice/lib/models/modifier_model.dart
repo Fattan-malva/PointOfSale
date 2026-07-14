@@ -105,39 +105,3 @@ class ModifierOptionModel {
   }
 }
 
-class PackageDetailModel {
-  final String id;
-  final String packageItemId;
-  final String itemId;
-  final String? itemName;
-  final int qty;
-  final double unitPrice;
-
-  PackageDetailModel({
-    required this.id,
-    required this.packageItemId,
-    required this.itemId,
-    this.itemName,
-    required this.qty,
-    required this.unitPrice,
-  });
-
-  factory PackageDetailModel.fromJson(Map<String, dynamic> json) {
-    return PackageDetailModel(
-      id: (json['PackageItemID'] as String?) ?? (json['PackageDetailID'] as String?) ?? (json['id'] as String?) ?? '',
-      packageItemId: (json['PackageItemID'] as String?) ?? (json['packageItemId'] as String?) ?? '',
-      itemId: (json['ItemID'] as String?) ?? (json['itemId'] as String?) ?? '',
-      itemName: json['ItemName'] as String? ?? json['itemName'] as String?,
-      qty: (json['Qty'] as num?)?.toInt() ?? (json['qty'] as num?)?.toInt() ?? 1,
-      unitPrice: (json['UnitPrice'] as num?)?.toDouble() ?? (json['unitPrice'] as num?)?.toDouble() ?? 0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'ItemID': itemId,
-      'Qty': qty,
-      'UnitPrice': unitPrice,
-    };
-  }
-}

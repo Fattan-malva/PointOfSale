@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/item_model.dart';
-import '../../models/modifier_model.dart';
+import '../../models/package_detail_model.dart';
 import 'repositories/package_repository.dart';
 import '../items/repositories/item_repository.dart';
 
@@ -85,6 +85,14 @@ class PackageNotifier extends StateNotifier<PackageState> {
     }
   }
 
+  Future<List<PackageDetailModel>> fetchDetails(String packageId) async {
+    try {
+      return await _repository.getPackageDetails(packageId);
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<void> loadPackageDetails(String packageId) async {
     state = state.copyWith(
       selectedPackageId: packageId,
@@ -105,10 +113,8 @@ class PackageNotifier extends StateNotifier<PackageState> {
     }
   }
 
-  // NEW: Select package method
   void selectPackage(String? packageId) {
     if (packageId == state.selectedPackageId) {
-      // Deselect if same package
       state = state.copyWith(
         selectedPackageId: null,
         packageDetails: [],
@@ -133,61 +139,86 @@ class PackageNotifier extends StateNotifier<PackageState> {
 
   Future<bool> createPackage(Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.createPackage(data);
       await loadPackages();
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal membuat paket: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal membuat paket: $e',
+      );
       return false;
     }
   }
 
   Future<bool> updatePackage(String id, Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.updatePackage(id, data);
       await loadPackages();
+      if (state.selectedPackageId == id) {
+        await loadPackageDetails(id);
+      }
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal memperbarui paket: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal memperbarui paket: $e',
+      );
       return false;
     }
   }
 
   Future<bool> deletePackage(String id) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.deletePackage(id);
-      state = state.copyWith(
-        selectedPackageId:
-            state.selectedPackageId == id ? null : state.selectedPackageId,
-        packageDetails:
-            state.selectedPackageId == id ? [] : state.packageDetails,
-      );
+
+      if (state.selectedPackageId == id) {
+        state = state.copyWith(
+          selectedPackageId: null,
+          packageDetails: [],
+        );
+      }
+
       await loadPackages();
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal menghapus paket: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal menghapus paket: $e',
+      );
       return false;
     }
   }
 
   Future<bool> addDetail(String packageId, String itemId, int qty) async {
     try {
+      state = state.copyWith(isLoadingDetails: true, error: null);
       await _repository.addPackageDetail(packageId, itemId, qty);
       await loadPackageDetails(packageId);
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal menambah item ke paket: $e');
+      state = state.copyWith(
+        isLoadingDetails: false,
+        error: 'Gagal menambah item ke paket: $e',
+      );
       return false;
     }
   }
 
   Future<bool> removeDetail(String packageId, String detailId) async {
     try {
+      state = state.copyWith(isLoadingDetails: true, error: null);
       await _repository.removePackageDetail(packageId, detailId);
       await loadPackageDetails(packageId);
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal menghapus item dari paket: $e');
+      state = state.copyWith(
+        isLoadingDetails: false,
+        error: 'Gagal menghapus item dari paket: $e',
+      );
       return false;
     }
   }

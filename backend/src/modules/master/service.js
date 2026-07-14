@@ -53,7 +53,15 @@ class MasterService {
   }
 
   async createItem(data) {
-    const { branchIds, taxIds, discountIds, Items, ...itemData } = data;
+    // Support both payload field names:
+    // - Items: array of package detail lines (expected by backend)
+    // - details: alias produced by Flutter PackageModal
+    const payload = { ...data };
+    if (!Array.isArray(payload.Items) && Array.isArray(payload.details)) {
+      payload.Items = payload.details;
+    }
+
+    const { branchIds, taxIds, discountIds, Items, ...itemData } = payload;
     const item = await this.repo.createItem(itemData);
 
     if (Array.isArray(branchIds)) {
@@ -94,25 +102,38 @@ class MasterService {
   }
 
   async updateItem(id, data) {
-    const { branchIds, taxIds, discountIds, Items, ...itemData } = data;
+    // Support both payload field names:
+    // - Items: array of package detail lines (expected by backend)
+    // - details: alias produced by Flutter PackageModal
+    const payload = { ...data };
+    if (!Array.isArray(payload.Items) && Array.isArray(payload.details)) {
+      payload.Items = payload.details;
+    }
+
+    const {
+      branchIds,
+      taxIds,
+      discountIds,
+      Items,
+      details, // ignore alias after mapping
+      ...itemData
+    } = payload;
+
+    // Items drives package-detail processing only; must NOT be written to Item table.
+    // So we never include Items/details in `itemData`.
     const old = await this.getItemById(id);
-    const updated = await this.repo.updateItem(id, itemData);
+    await this.repo.updateItem(id, itemData);
 
     if (Array.isArray(branchIds)) {
       const current = await this.repo.findBranchesByItemId(id);
       const currentIds = new Set(current.map(b => b.BranchID));
       const newIds = new Set(branchIds);
-      // remove old not in new
+
       for (const branchId of currentIds) {
-        if (!newIds.has(branchId)) {
-          await this.repo.removeBranchFromItem(id, branchId);
-        }
+        if (!newIds.has(branchId)) await this.repo.removeBranchFromItem(id, branchId);
       }
-      // add new not in old
       for (const branchId of newIds) {
-        if (!currentIds.has(branchId)) {
-          await this.repo.assignBranchToItem(id, branchId);
-        }
+        if (!currentIds.has(branchId)) await this.repo.assignBranchToItem(id, branchId);
       }
     }
 
@@ -120,11 +141,18 @@ class MasterService {
       const current = await this.repo.findTaxesByItemId(id);
       const currentIds = new Set(current.map(t => t.TaxID));
       const newIds = new Set(taxIds);
-      for (const taxId of currentIds.difference(newIds)) {
-        await this.repo.removeTaxFromItem(id, taxId);
+
+      // currentIds - newIds
+      for (const taxId of currentIds) {
+        if (!newIds.has(taxId)) {
+          await this.repo.removeTaxFromItem(id, taxId);
+        }
       }
-      for (const taxId of newIds.difference(currentIds)) {
-        await this.repo.assignTaxToItem(id, taxId);
+      // newIds - currentIds
+      for (const taxId of newIds) {
+        if (!currentIds.has(taxId)) {
+          await this.repo.assignTaxToItem(id, taxId);
+        }
       }
     }
 
@@ -132,93 +160,41 @@ class MasterService {
       const current = await this.repo.findDiscountsByItemId(id);
       const currentIds = new Set(current.map(d => d.DiscountID));
       const newIds = new Set(discountIds);
-      for (const discountId of currentIds.difference(newIds)) {
-        await this.repo.removeDiscountFromItem(id, discountId);
+
+      // currentIds - newIds
+      for (const discountId of currentIds) {
+        if (!newIds.has(discountId)) {
+          await this.repo.removeDiscountFromItem(id, discountId);
+        }
       }
-      for (const discountId of newIds.difference(currentIds)) {
-        await this.repo.assignDiscountToItem(id, discountId);
+      // newIds - currentIds
+      for (const discountId of newIds) {
+        if (!currentIds.has(discountId)) {
+          await this.repo.assignDiscountToItem(id, discountId);
+        }
       }
     }
 
     // Process PackageDetails for Package items
-    if (old.ItemType === 'Package') {
-      if (Array.isArray(Items)) {
-        // Delete existing details
-        const existing = await this.repo.findPackageDetails(id);
-        for (const existingDetail of existing) {
-          await this.repo.deletePackageDetail(existingDetail.PackageDetailID);
-        }
-        // Insert new details
-        for (const detail of Items) {
-          await this.repo.createPackageDetail({
-            PackageItemID: id,
-            ItemID: detail.ItemID,
-            Qty: detail.Qty,
-            UnitPrice: detail.UnitPrice,
-          });
-        }
+    if (old.ItemType === 'Package' && Array.isArray(Items)) {
+      const existing = await this.repo.findPackageDetails(id);
+      for (const existingDetail of existing) {
+        await this.repo.deletePackageDetail(existingDetail.PackageDetailID);
+      }
+      for (const detail of Items) {
+        await this.repo.createPackageDetail({
+          PackageItemID: id,
+          ItemID: detail.ItemID,
+          Qty: detail.Qty,
+          UnitPrice: detail.UnitPrice,
+        });
       }
     }
 
     await auditLog({
-      Module: 'Master', Action: 'UpdateItem', TableName: 'Item',
-      RecordID: id,
-      OldValue: { ItemName: old.ItemName, Price: old.Price },
-      NewValue: itemData,
-    });
-
-    return this.repo.findItemById(id);
-  }
-
-  async updateItem(id, data) {
-    const { branchIds, taxIds, discountIds, ...itemData } = data;
-    const old = await this.getItemById(id);
-    const updated = await this.repo.updateItem(id, itemData);
-
-    if (Array.isArray(branchIds)) {
-      const current = await this.repo.findBranchesByItemId(id);
-      const currentIds = new Set(current.map(b => b.BranchID));
-      const newIds = new Set(branchIds);
-      // remove old not in new
-      for (const branchId of currentIds) {
-        if (!newIds.has(branchId)) {
-          await this.repo.removeBranchFromItem(id, branchId);
-        }
-      }
-      // add new not in old
-      for (const branchId of newIds) {
-        if (!currentIds.has(branchId)) {
-          await this.repo.assignBranchToItem(id, branchId);
-        }
-      }
-    }
-
-    if (Array.isArray(taxIds)) {
-      const current = await this.repo.findTaxesByItemId(id);
-      const currentIds = new Set(current.map(t => t.TaxID));
-      const newIds = new Set(taxIds);
-      for (const taxId of currentIds.difference(newIds)) {
-        await this.repo.removeTaxFromItem(id, taxId);
-      }
-      for (const taxId of newIds.difference(currentIds)) {
-        await this.repo.assignTaxToItem(id, taxId);
-      }
-    }
-
-    if (Array.isArray(discountIds)) {
-      const current = await this.repo.findDiscountsByItemId(id);
-      const currentIds = new Set(current.map(d => d.DiscountID));
-      const newIds = new Set(discountIds);
-      for (const discountId of currentIds.difference(newIds)) {
-        await this.repo.removeDiscountFromItem(id, discountId);
-      }
-      for (const discountId of newIds.difference(currentIds)) {
-        await this.repo.assignDiscountToItem(id, discountId);
-      }
-    }
-
-    await auditLog({
-      Module: 'Master', Action: 'UpdateItem', TableName: 'Item',
+      Module: 'Master',
+      Action: 'UpdateItem',
+      TableName: 'Item',
       RecordID: id,
       OldValue: { ItemName: old.ItemName, Price: old.Price },
       NewValue: itemData,

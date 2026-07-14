@@ -1,5 +1,7 @@
 exports.up = function (knex) {
   return knex.schema.alterTable('Item', (table) => {
+    // Price breakdown columns (used by both regular Items and Packages,
+    // since a Package is also stored as an Item with ItemType='Package'):
     // 1. Subtotal Price - Harga dari semua item sebelum diskon & tax = SUM(Qty x UnitPrice)
     table.decimal('SubtotalPrice', 18, 2).notNullable().defaultTo(0);
     // 2. Discount Amount - Potongan harga

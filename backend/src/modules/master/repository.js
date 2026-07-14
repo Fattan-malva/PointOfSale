@@ -109,7 +109,14 @@ class MasterRepository {
       .leftJoin('Branch', 'ItemBranch.BranchID', 'Branch.BranchID')
       .where('ItemBranch.ItemID', id)
       .select('Branch.BranchID', 'Branch.BranchCode', 'Branch.BranchName', 'ItemBranch.IsAvailable');
-    return { ...item, Taxes: taxes, Discounts: discounts, Branches: branches };
+    return {
+      ...item,
+      Taxes: taxes,
+      Discounts: discounts,
+      Branches: branches,
+      TaxIds: taxes.map((t) => t.TaxID),
+      DiscountIds: discounts.map((d) => d.DiscountID),
+    };
   }
 
   async findItemsByCategoryId(categoryId) {
@@ -272,23 +279,22 @@ class MasterRepository {
   }
 
   async recomputePackagePriceByPackageItemId(packageItemId) {
-    // If item does not exist, just skip
-    // (safety: packageItemId should be valid because endpoint requires PackageItemID)
-    const [{ price: computedPrice }] = await db('Item as package')
+    // Recompute the package subtotal = SUM(Qty * UnitPrice of its details).
+    // Only the SubtotalPrice column is recomputed here; the client-sent
+    // Price (manual or auto package price), DiscountAmount, TaxAmount and
+    // FinalPrice are preserved as provided by the UI.
+
+    const rows = await db('Item as package')
       .join('PackageDetail', 'PackageDetail.PackageItemID', 'package.ItemID')
       .where('package.ItemID', packageItemId)
       .groupBy('package.ItemID')
-      .select(db.raw('COALESCE(SUM(PackageDetail.Qty * PackageDetail.UnitPrice), 0) as price'));
+      .select(db.raw('COALESCE(SUM(PackageDetail.Qty * PackageDetail.UnitPrice), 0) as subtotal'));
 
-    const finalPrice = computedPrice ?? 0;
+    // When there are no PackageDetail rows, `rows` may be empty.
+    const subtotal = rows?.[0]?.subtotal ?? 0;
 
-    // Ensure price is updated even when there are no details (SUM would return null)
-    // If no details exist, the join above returns no row, so computedPrice is undefined.
-    if (computedPrice === undefined) {
-      await db('Item').where('ItemID', packageItemId).update({ Price: 0 });
-    } else {
-      await db('Item').where('ItemID', packageItemId).update({ Price: finalPrice });
-    }
+    const subtotalPrice = subtotal == null ? 0 : Number(subtotal);
+    await db('Item').where('ItemID', packageItemId).update({ SubtotalPrice: subtotalPrice });
   }
 
   async findAllTable({ limit, offset } = {}) {
