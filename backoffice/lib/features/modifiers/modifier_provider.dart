@@ -55,6 +55,8 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
     loadModifiers();
   }
 
+  // ============ PUBLIC METHODS ============
+
   Future<void> refresh() async {
     await loadModifiers();
     final selectedId = state.selectedModifierId;
@@ -76,14 +78,42 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
   }
 
   Future<void> loadOptions(String modifierId) async {
-    state =
-        state.copyWith(selectedModifierId: modifierId, isLoadingOptions: true);
+    state = state.copyWith(
+      selectedModifierId: modifierId,
+      isLoadingOptions: true,
+      error: null,
+    );
     try {
       final options = await _repository.getModifierOptions(modifierId);
-      state = state.copyWith(currentOptions: options, isLoadingOptions: false);
+      state = state.copyWith(
+        currentOptions: options,
+        isLoadingOptions: false,
+      );
     } catch (e) {
       state = state.copyWith(
-          isLoadingOptions: false, error: 'Gagal memuat opsi: $e');
+        isLoadingOptions: false,
+        error: 'Gagal memuat opsi: $e',
+      );
+    }
+  }
+
+  void selectModifier(String? modifierId) {
+    if (modifierId == state.selectedModifierId) {
+      // Deselect if same modifier
+      state = state.copyWith(
+        selectedModifierId: null,
+        currentOptions: [],
+      );
+      return;
+    }
+
+    if (modifierId != null) {
+      loadOptions(modifierId);
+    } else {
+      state = state.copyWith(
+        selectedModifierId: null,
+        currentOptions: [],
+      );
     }
   }
 
@@ -94,36 +124,56 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
 
   Future<bool> createModifier(Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.createModifier(data);
       await loadModifiers();
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal membuat modifier: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal membuat modifier: $e',
+      );
       return false;
     }
   }
 
   Future<bool> updateModifier(String id, Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.updateModifier(id, data);
       await loadModifiers();
+      // Reload options if this modifier is selected
+      if (state.selectedModifierId == id) {
+        await loadOptions(id);
+      }
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal memperbarui modifier: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal memperbarui modifier: $e',
+      );
       return false;
     }
   }
 
   Future<bool> deleteModifier(String id) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.deleteModifier(id);
-      state = state.copyWith(
-          selectedModifierId:
-              state.selectedModifierId == id ? null : state.selectedModifierId);
+      // Clear selection if deleted modifier was selected
+      if (state.selectedModifierId == id) {
+        state = state.copyWith(
+          selectedModifierId: null,
+          currentOptions: [],
+        );
+      }
       await loadModifiers();
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal menghapus modifier: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal menghapus modifier: $e',
+      );
       return false;
     }
   }
@@ -131,35 +181,47 @@ class ModifierNotifier extends StateNotifier<ModifierState> {
   Future<bool> createOption(
       String modifierId, Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoadingOptions: true, error: null);
       await _repository.createOption(modifierId, data);
       await loadOptions(modifierId);
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal membuat opsi: $e');
+      state = state.copyWith(
+        isLoadingOptions: false,
+        error: 'Gagal membuat opsi: $e',
+      );
       return false;
     }
   }
 
   Future<bool> updateOption(String optionId, Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoadingOptions: true, error: null);
       final modId = state.selectedModifierId;
       await _repository.updateOption(optionId, data);
       if (modId != null) await loadOptions(modId);
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal memperbarui opsi: $e');
+      state = state.copyWith(
+        isLoadingOptions: false,
+        error: 'Gagal memperbarui opsi: $e',
+      );
       return false;
     }
   }
 
   Future<bool> deleteOption(String optionId) async {
     try {
+      state = state.copyWith(isLoadingOptions: true, error: null);
       final modId = state.selectedModifierId;
       await _repository.deleteOption(optionId);
       if (modId != null) await loadOptions(modId);
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Gagal menghapus opsi: $e');
+      state = state.copyWith(
+        isLoadingOptions: false,
+        error: 'Gagal menghapus opsi: $e',
+      );
       return false;
     }
   }

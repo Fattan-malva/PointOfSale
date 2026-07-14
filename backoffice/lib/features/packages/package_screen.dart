@@ -17,10 +17,16 @@ class PackageScreen extends ConsumerStatefulWidget {
 class _PackageScreenState extends ConsumerState<PackageScreen>
     with TickerProviderStateMixin {
   final _searchController = TextEditingController();
+  late final AnimationController _animController;
+  int _lastListHash = 0;
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(packageProvider.notifier).refresh();
@@ -30,6 +36,7 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
   @override
   void dispose() {
     _searchController.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
@@ -37,7 +44,13 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(packageProvider);
 
-    final h = MediaQuery.of(context).size.height;
+    final listHash = Object.hashAll(state.packages.map((i) => i.id));
+    if (listHash != _lastListHash && state.packages.isNotEmpty) {
+      _lastListHash = listHash;
+      _animController.reset();
+      _animController.forward();
+    }
+
     return Scaffold(
       backgroundColor: AppColors.warmBone,
       body: RefreshIndicator(
@@ -50,10 +63,7 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
             const SizedBox(height: 24),
             _buildSearch(),
             const SizedBox(height: 20),
-            SizedBox(
-              height: h - 32 - 24 - 20 - 120,
-              child: _buildBody(state),
-            ),
+            _buildBody(state),
           ],
         ),
       ),
@@ -65,10 +75,10 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Packages',
               style: TextStyle(
                 fontSize: 26,
@@ -78,10 +88,10 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
                 color: Color(0xFF111111),
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
-              'Manage your packages',
-              style: TextStyle(
+              '${state.packages.length} package${state.packages.length != 1 ? 's' : ''}',
+              style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF787774),
                 height: 1.5,
@@ -155,38 +165,14 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
 
   Widget _buildBody(PackageState state) {
     if (state.isLoading) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 8,
-              itemBuilder: (_, __) => const Padding(
-                padding: EdgeInsets.only(bottom: 10),
-                child: BackofficeShimmerRow(dense: true),
-              ),
-            ),
+      return Column(
+        children: List.generate(
+          10,
+          (i) => const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: BackofficeShimmerRow(dense: true),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 3,
-            child: state.selectedPackageId == null
-                ? const Center(child: SizedBox.shrink())
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: List.generate(
-                      6,
-                      (i) => const Padding(
-                        padding: EdgeInsets.only(bottom: 10),
-                        child: BackofficeShimmer(
-                            width: double.infinity, height: 48),
-                      ),
-                    ),
-                  ),
-          ),
-        ],
+        ),
       );
     }
 
@@ -199,241 +185,141 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: _buildPackageList(state),
-        ),
-        if (state.selectedPackageId != null) ...[
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 3,
-            child: _buildSelectedPackageItems(state),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildPackageList(PackageState state) {
-    return ListView.builder(
-      itemCount: state.packages.length,
-      itemBuilder: (_, i) {
-        final pkg = state.packages[i];
-        final selected = state.selectedPackageId == pkg.id;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(
-              color:
-                  selected ? const Color(0xFF111111) : const Color(0xFFEAEAEA),
-              width: selected ? 1.5 : 1,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F6F3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.inventory_2_rounded,
-                      size: 18, color: Color(0xFF111111)),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        pkg.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF111111),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${pkg.itemCode} • Rp ${_fmt(pkg.price)}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF787774),
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _IconAction(
-                  icon: Icons.edit_rounded,
-                  onTap: () => _onEditPackage(pkg),
-                ),
-                const SizedBox(width: 8),
-                _IconAction(
-                  icon: Icons.delete_outline_rounded,
-                  iconColor: AppColors.pastelRedText,
-                  onTap: () => _onDeletePackage(pkg),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSelectedPackageItems(PackageState state) {
-    final packageId = state.selectedPackageId!;
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildItemsHeader(onAdd: () => _onAddDetail(packageId, state)),
-        const SizedBox(height: 16),
-        Expanded(
-          child: state.isLoadingDetails
-              ? ListView.builder(
-                  itemCount: 6,
-                  itemBuilder: (_, __) => const Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: BackofficeShimmerRow(),
-                  ),
-                )
-              : state.packageDetails.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No items in this package',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF787774),
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: state.packageDetails.length,
-                      itemBuilder: (_, i) {
-                        final detail = state.packageDetails[i];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFEAEAEA)),
-                            borderRadius: BorderRadius.circular(8),
+      children: List.generate(state.packages.length, (i) {
+        final pkg = state.packages[i];
+        return _AnimatedEntry(
+          controller: _animController,
+          index: i,
+          child: _buildPackageCard(pkg, state),
+        );
+      }),
+    );
+  }
+
+  Widget _buildPackageCard(ItemModel pkg, PackageState state) {
+    final selected = state.selectedPackageId == pkg.id;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFF7F6F3) : Colors.white,
+        border: Border.all(
+          color: selected ? const Color(0xFF111111) : const Color(0xFFEAEAEA),
+          width: selected ? 1.5 : 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0EDE8),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.inventory_2_rounded,
+                size: 20,
+                color: Color(0xFF111111),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _onSelectPackage(pkg.id),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            pkg.name,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF111111),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        detail.itemName ?? detail.itemId,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF111111),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Qty: ${detail.qty}',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF787774),
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                _IconAction(
-                                  icon: Icons.remove_circle_outline_rounded,
-                                  iconColor: AppColors.pastelRedText,
-                                  onTap: () async {
-                                    final ok =
-                                        await PackageModal.confirmRemoveDetail(
-                                      context,
-                                      detail.itemName ?? detail.itemId,
-                                    );
-                                    if (!context.mounted || !ok) return;
-                                    await ref
-                                        .read(packageProvider.notifier)
-                                        .removeDetail(packageId, detail.id);
-                                  },
-                                ),
-                              ],
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: pkg.isActive
+                                ? AppColors.pastelGreen
+                                : AppColors.pastelRed,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            pkg.isActive ? 'Active' : 'Inactive',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.05,
+                              color: pkg.isActive
+                                  ? AppColors.pastelGreenText
+                                  : AppColors.pastelRedText,
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${pkg.itemCode} • Rp ${_fmt(pkg.price)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF787774),
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (state.selectedPackageId == pkg.id &&
+                        state.packageDetails.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '${state.packageDetails.length} item${state.packageDetails.length != 1 ? 's' : ''} in package',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF787774),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _IconAction(
+              icon: Icons.edit_rounded,
+              onTap: () => _onEditPackage(pkg),
+            ),
+            const SizedBox(width: 8),
+            _IconAction(
+              icon: Icons.delete_outline_rounded,
+              iconColor: AppColors.pastelRedText,
+              onTap: () => _onDeletePackage(pkg),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildItemsHeader({required VoidCallback onAdd}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'Package Items',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111111),
-          ),
-        ),
-        GestureDetector(
-          onTap: onAdd,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFEAEAEA)),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add_rounded, size: 16, color: Color(0xFF111111)),
-                SizedBox(width: 8),
-                Text(
-                  'Add Item',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF111111),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        )
-      ],
-    );
+  void _onSelectPackage(String packageId) {
+    ref.read(packageProvider.notifier).selectPackage(packageId);
   }
 
   Future<void> _onAddPackage() async {
@@ -455,7 +341,13 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
     });
 
     if (!context.mounted) return;
-    _snack(ok ? 'Package created' : 'Failed to create package', ok: ok);
+    final err = ref.read(packageProvider).error;
+    _snack(
+      ok
+          ? 'Package created'
+          : (err != null ? 'Failed: $err' : 'Failed to create package'),
+      ok: ok,
+    );
   }
 
   Future<void> _onEditPackage(ItemModel pkg) async {
@@ -478,7 +370,13 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
     });
 
     if (!context.mounted) return;
-    _snack(ok ? 'Package updated' : 'Failed to update package', ok: ok);
+    final err = ref.read(packageProvider).error;
+    _snack(
+      ok
+          ? 'Package updated'
+          : (err != null ? 'Failed: $err' : 'Failed to update package'),
+      ok: ok,
+    );
   }
 
   Future<void> _onDeletePackage(ItemModel pkg) async {
@@ -487,31 +385,13 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
 
     final ok = await ref.read(packageProvider.notifier).deletePackage(pkg.id);
     if (!context.mounted) return;
-    _snack(ok ? 'Package deleted' : 'Failed to delete package', ok: ok);
-  }
-
-  Future<void> _onAddDetail(String packageId, PackageState state) async {
-    final items = state.availableItems.isNotEmpty
-        ? state.availableItems
-        : await ref.read(itemRepositoryProvider).getItems(itemType: 'Product');
-
-    final result = await PackageModal.addDetail(
-      context,
-      items: items,
-      initialQty: 1,
+    final err = ref.read(packageProvider).error;
+    _snack(
+      ok
+          ? 'Package deleted'
+          : (err != null ? 'Failed: $err' : 'Failed to delete package'),
+      ok: ok,
     );
-
-    if (result == null || !context.mounted) return;
-
-    final itemId = result['ItemID'] as String;
-    final qty = result['Qty'] as int;
-
-    final ok = await ref
-        .read(packageProvider.notifier)
-        .addDetail(packageId, itemId, qty);
-
-    if (!context.mounted) return;
-    _snack(ok ? 'Item added to package' : 'Failed to add item', ok: ok);
   }
 
   void _snack(String message, {required bool ok}) {
@@ -540,6 +420,44 @@ class _PackageScreenState extends ConsumerState<PackageScreen>
 
   String _fmt(double a) => a.toStringAsFixed(0).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+}
+
+class _AnimatedEntry extends StatelessWidget {
+  final AnimationController controller;
+  final int index;
+  final Widget child;
+
+  const _AnimatedEntry({
+    required this.controller,
+    required this.index,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double start = (index * 0.06).clamp(0.0, 0.6);
+    final double end = (start + 0.2).clamp(0.0, 1.0);
+    const curve = Cubic(0.16, 1.0, 0.3, 1.0);
+
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(
+          parent: controller,
+          curve: Interval(start, end, curve: curve),
+        ),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+            .animate(
+          CurvedAnimation(
+            parent: controller,
+            curve: Interval(start, end, curve: curve),
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
 }
 
 class _IconAction extends StatelessWidget {

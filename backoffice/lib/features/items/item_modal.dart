@@ -524,10 +524,6 @@ class _CheckboxGroupState extends State<_CheckboxGroup> {
                 color: Color(0xFF787774))),
         const SizedBox(height: 6),
         Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFEAEAEA)),
-            borderRadius: BorderRadius.circular(6),
-          ),
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Wrap(
             spacing: 6,

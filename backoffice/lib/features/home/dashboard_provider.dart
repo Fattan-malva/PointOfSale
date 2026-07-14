@@ -59,7 +59,6 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
       monthlyRevenue = (dashboardData['monthlyRevenue'] as num?)?.toDouble() ?? 0;
       orderGrowth = (dashboardData['orderGrowth'] as num?)?.toInt() ?? 0;
       revenueGrowth = (dashboardData['revenueGrowth'] as num?)?.toDouble() ?? 0;
-      lowStockItems = (dashboardData['lowStockItems'] as num?)?.toInt() ?? 0;
       pendingOrders = (dashboardData['pendingOrders'] as num?)?.toInt() ?? 0;
     } catch (_) {
     }

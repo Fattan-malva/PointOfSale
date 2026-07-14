@@ -65,19 +65,14 @@ class PackageNotifier extends StateNotifier<PackageState> {
     _loadAvailableItems();
   }
 
+  // ============ PUBLIC METHODS ============
+
   Future<void> refresh() async {
     await Future.wait([loadPackages(), _loadAvailableItems()]);
     final selectedId = state.selectedPackageId;
     if (selectedId != null) {
       await loadPackageDetails(selectedId);
     }
-  }
-
-  Future<void> _loadAvailableItems() async {
-    try {
-      final items = await _itemRepository.getItems(itemType: 'Product');
-      state = state.copyWith(availableItems: items);
-    } catch (_) {}
   }
 
   Future<void> loadPackages() async {
@@ -91,18 +86,43 @@ class PackageNotifier extends StateNotifier<PackageState> {
   }
 
   Future<void> loadPackageDetails(String packageId) async {
-    state =
-        state.copyWith(selectedPackageId: packageId, isLoadingDetails: true);
+    state = state.copyWith(
+      selectedPackageId: packageId,
+      isLoadingDetails: true,
+      error: null,
+    );
     try {
       final details = await _repository.getPackageDetails(packageId);
-      final items = await _itemRepository.getItems(itemType: 'Product');
       state = state.copyWith(
-          packageDetails: details,
-          availableItems: items,
-          isLoadingDetails: false);
+        packageDetails: details,
+        isLoadingDetails: false,
+      );
     } catch (e) {
       state = state.copyWith(
-          isLoadingDetails: false, error: 'Gagal memuat detail paket: $e');
+        isLoadingDetails: false,
+        error: 'Gagal memuat detail paket: $e',
+      );
+    }
+  }
+
+  // NEW: Select package method
+  void selectPackage(String? packageId) {
+    if (packageId == state.selectedPackageId) {
+      // Deselect if same package
+      state = state.copyWith(
+        selectedPackageId: null,
+        packageDetails: [],
+      );
+      return;
+    }
+
+    if (packageId != null) {
+      loadPackageDetails(packageId);
+    } else {
+      state = state.copyWith(
+        selectedPackageId: null,
+        packageDetails: [],
+      );
     }
   }
 
@@ -137,8 +157,11 @@ class PackageNotifier extends StateNotifier<PackageState> {
     try {
       await _repository.deletePackage(id);
       state = state.copyWith(
-          selectedPackageId:
-              state.selectedPackageId == id ? null : state.selectedPackageId);
+        selectedPackageId:
+            state.selectedPackageId == id ? null : state.selectedPackageId,
+        packageDetails:
+            state.selectedPackageId == id ? [] : state.packageDetails,
+      );
       await loadPackages();
       return true;
     } catch (e) {
@@ -171,5 +194,16 @@ class PackageNotifier extends StateNotifier<PackageState> {
 
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  // ============ PRIVATE METHODS ============
+
+  Future<void> _loadAvailableItems() async {
+    try {
+      final items = await _itemRepository.getItems(itemType: 'Product');
+      state = state.copyWith(availableItems: items);
+    } catch (_) {
+      // Silent fail for available items
+    }
   }
 }

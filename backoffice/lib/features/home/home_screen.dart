@@ -486,7 +486,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   label: 'Active Items',
                   pastelBg: AppColors.pastelGreen,
                   pastelFg: AppColors.pastelGreenText,
-                  subtitle: '${s.lowStockItems} low stock',
                 ),
               ),
             ),
