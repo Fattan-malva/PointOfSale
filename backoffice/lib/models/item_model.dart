@@ -5,6 +5,21 @@ class ItemModel {
   final String? description;
   final double price;
   final double? costPrice;
+
+  // 1. Subtotal Price - Harga dari semua item sebelum diskon & tax
+  //    = SUM(Qty x UnitPrice)
+  final double subtotalPrice;
+
+  // 2. Discount Amount - Potongan harga
+  final double discountAmount;
+
+  // 3. Tax Amount - Pajak yang berlaku
+  final double taxAmount;
+
+  // 4. Final Price - Harga akhir yang dibayar
+  //    = Subtotal Price - Discount + Tax
+  final double finalPrice;
+
   final String? categoryId;
   final String? categoryName;
   final String itemType;
@@ -22,6 +37,10 @@ class ItemModel {
     this.description,
     required this.price,
     this.costPrice,
+    this.subtotalPrice = 0,
+    this.discountAmount = 0,
+    this.taxAmount = 0,
+    this.finalPrice = 0,
     this.categoryId,
     this.categoryName,
     this.itemType = 'Product',
@@ -46,6 +65,18 @@ class ItemModel {
           0,
       costPrice: (json['CostPrice'] as num?)?.toDouble() ??
           (json['costPrice'] as num?)?.toDouble(),
+      subtotalPrice: (json['SubtotalPrice'] as num?)?.toDouble() ??
+          (json['subtotalPrice'] as num?)?.toDouble() ??
+          0,
+      discountAmount: (json['DiscountAmount'] as num?)?.toDouble() ??
+          (json['discountAmount'] as num?)?.toDouble() ??
+          0,
+      taxAmount: (json['TaxAmount'] as num?)?.toDouble() ??
+          (json['taxAmount'] as num?)?.toDouble() ??
+          0,
+      finalPrice: (json['FinalPrice'] as num?)?.toDouble() ??
+          (json['finalPrice'] as num?)?.toDouble() ??
+          0,
       categoryId:
           json['CategoryID'] as String? ?? json['categoryId'] as String?,
       categoryName:
@@ -86,6 +117,10 @@ class ItemModel {
       'Description': description,
       'Price': price,
       'CostPrice': costPrice,
+      'SubtotalPrice': subtotalPrice,
+      'DiscountAmount': discountAmount,
+      'TaxAmount': taxAmount,
+      'FinalPrice': finalPrice,
       'CategoryID': categoryId,
       'ItemType': itemType,
       'ImageURL': imageUrl,
@@ -100,6 +135,10 @@ class ItemModel {
     String? description,
     double? price,
     double? costPrice,
+    double? subtotalPrice,
+    double? discountAmount,
+    double? taxAmount,
+    double? finalPrice,
     String? categoryId,
     String? categoryName,
     String? itemType,
@@ -117,6 +156,10 @@ class ItemModel {
       description: description ?? this.description,
       price: price ?? this.price,
       costPrice: costPrice ?? this.costPrice,
+      subtotalPrice: subtotalPrice ?? this.subtotalPrice,
+      discountAmount: discountAmount ?? this.discountAmount,
+      taxAmount: taxAmount ?? this.taxAmount,
+      finalPrice: finalPrice ?? this.finalPrice,
       categoryId: categoryId ?? this.categoryId,
       categoryName: categoryName ?? this.categoryName,
       itemType: itemType ?? this.itemType,

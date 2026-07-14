@@ -1,21 +1,18 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/network/api_exception.dart';
 import '../../models/category_model.dart';
 import 'repositories/category_repository.dart';
-import '../../features/items/item_provider.dart';
 
 class CategoryState {
   final List<CategoryModel> categories;
   final bool isLoading;
   final String? error;
-  final String searchQuery;
+  final String? searchQuery;
 
   CategoryState({
     this.categories = const [],
     this.isLoading = false,
     this.error,
-    this.searchQuery = '',
+    this.searchQuery,
   });
 
   CategoryState copyWith({
@@ -36,83 +33,88 @@ class CategoryState {
 final categoryProvider =
     StateNotifierProvider<CategoryNotifier, CategoryState>((ref) {
   final repository = ref.watch(categoryRepositoryProvider);
-  return CategoryNotifier(
-    repository,
-    () => ref.read(itemProvider.notifier).refreshCategories(),
-  );
+  return CategoryNotifier(repository);
 });
 
 class CategoryNotifier extends StateNotifier<CategoryState> {
   final CategoryRepository _repository;
-  final VoidCallback onCategoriesUpdated;
 
-  CategoryNotifier(this._repository, this.onCategoriesUpdated)
-      : super(CategoryState()) {
+  CategoryNotifier(this._repository) : super(CategoryState()) {
     loadCategories();
   }
 
+  // ============ PUBLIC METHODS ============
+
+  Future<void> refresh() async {
+    await loadCategories();
+  }
+
   Future<void> loadCategories() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, error: null);
     try {
       final categories = await _repository.getCategories(
-        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+        search: state.searchQuery,
       );
       state = state.copyWith(categories: categories, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _fmtErr(e));
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal memuat kategori: $e',
+      );
     }
   }
-
-  Future<void> refresh() => loadCategories();
 
   void setSearch(String query) {
     state = state.copyWith(searchQuery: query);
     loadCategories();
   }
 
-  /// Returns null on success, error message on failure.
-  Future<String?> createCategory(Map<String, dynamic> data) async {
+  // Mengembalikan bool, bukan String?
+  Future<bool> createCategory(Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.createCategory(data);
       await loadCategories();
-      onCategoriesUpdated();
-      return null;
+      return true;
     } catch (e) {
-      final msg = _fmtErr(e);
-      state = state.copyWith(error: msg);
-      return msg;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal membuat kategori: $e',
+      );
+      return false;
     }
   }
 
-  Future<String?> updateCategory(String id, Map<String, dynamic> data) async {
+  // Mengembalikan bool, bukan String?
+  Future<bool> updateCategory(String id, Map<String, dynamic> data) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.updateCategory(id, data);
       await loadCategories();
-      onCategoriesUpdated();
-      return null;
+      return true;
     } catch (e) {
-      final msg = _fmtErr(e);
-      state = state.copyWith(error: msg);
-      return msg;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal memperbarui kategori: $e',
+      );
+      return false;
     }
   }
 
-  Future<String?> deleteCategory(String id) async {
+  // Mengembalikan bool, bukan String?
+  Future<bool> deleteCategory(String id) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       await _repository.deleteCategory(id);
       await loadCategories();
-      onCategoriesUpdated();
-      return null;
+      return true;
     } catch (e) {
-      final msg = _fmtErr(e);
-      state = state.copyWith(error: msg);
-      return msg;
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Gagal menghapus kategori: $e',
+      );
+      return false;
     }
-  }
-
-  String _fmtErr(Object e) {
-    if (e is ApiException) return e.message;
-    return e.toString();
   }
 
   void clearError() {

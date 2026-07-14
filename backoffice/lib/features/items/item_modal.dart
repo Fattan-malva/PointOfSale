@@ -26,6 +26,20 @@ class ItemModal {
     final discountIds = <String>{};
     final branchIds = <String>{};
 
+    final breakdown = ValueNotifier<_Breakdown>(const _Breakdown(0, 0, 0, 0));
+    void recompute() {
+      breakdown.value = _computeBreakdown(
+        price: double.tryParse(priceCtrl.text) ?? 0,
+        taxIds: taxIds,
+        discountIds: discountIds,
+        allTaxes: allTaxes,
+        allDiscounts: allDiscounts,
+      );
+    }
+
+    priceCtrl.addListener(recompute);
+    recompute();
+
     return AppModal.show<Map<String, dynamic>>(
         context,
         AppModalConfig(
@@ -38,11 +52,17 @@ class ItemModal {
             loading.value = true;
             await Future.delayed(const Duration(milliseconds: 100));
             loading.value = false;
+            final b = breakdown.value;
             Navigator.pop(context, {
               'ItemName': nameCtrl.text.trim(),
               'ItemCode': codeCtrl.text.trim(),
               'Price': double.tryParse(priceCtrl.text) ?? 0,
               'CostPrice': double.tryParse(costCtrl.text),
+              // 4 field breakdown harga yang disimpan ke database
+              'SubtotalPrice': b.subtotalPrice,
+              'DiscountAmount': b.discountAmount,
+              'TaxAmount': b.taxAmount,
+              'FinalPrice': b.finalPrice,
               'Description': descCtrl.text.trim(),
               'CategoryID': categoryId,
               'taxIds': taxIds.toList(),
@@ -91,6 +111,7 @@ class ItemModal {
                     .map((t) => _CheckItem(t.id, '${t.name} (${t.rate}%)'))
                     .toList(),
                 selected: taxIds,
+                onChanged: recompute,
               ),
             ],
             if (allDiscounts.isNotEmpty) ...[
@@ -106,8 +127,11 @@ class ItemModal {
                         ))
                     .toList(),
                 selected: discountIds,
+                onChanged: recompute,
               ),
             ],
+            const SizedBox(height: 20),
+            _PriceSummary(breakdown: breakdown),
             if (allBranches.isNotEmpty) ...[
               const SizedBox(height: 20),
               _buildCheckboxGroup(
@@ -142,6 +166,20 @@ class ItemModal {
     final discountIds = Set<String>.from(item.discounts.map((d) => d.id));
     final branchIds = Set<String>.from(item.branches.map((b) => b.branchId));
 
+    final breakdown = ValueNotifier<_Breakdown>(const _Breakdown(0, 0, 0, 0));
+    void recompute() {
+      breakdown.value = _computeBreakdown(
+        price: double.tryParse(priceCtrl.text) ?? 0,
+        taxIds: taxIds,
+        discountIds: discountIds,
+        allTaxes: allTaxes,
+        allDiscounts: allDiscounts,
+      );
+    }
+
+    priceCtrl.addListener(recompute);
+    recompute();
+
     return AppModal.show<Map<String, dynamic>>(
         context,
         AppModalConfig(
@@ -154,11 +192,17 @@ class ItemModal {
             loading.value = true;
             await Future.delayed(const Duration(milliseconds: 100));
             loading.value = false;
+            final b = breakdown.value;
             Navigator.pop(context, {
               'ItemName': nameCtrl.text.trim(),
               'ItemCode': codeCtrl.text.trim(),
               'Price': double.tryParse(priceCtrl.text) ?? 0,
               'CostPrice': double.tryParse(costCtrl.text),
+              // 4 field breakdown harga yang disimpan ke database
+              'SubtotalPrice': b.subtotalPrice,
+              'DiscountAmount': b.discountAmount,
+              'TaxAmount': b.taxAmount,
+              'FinalPrice': b.finalPrice,
               'Description': descCtrl.text.trim(),
               'CategoryID': categoryId,
               'taxIds': taxIds.toList(),
@@ -202,6 +246,7 @@ class ItemModal {
                     .map((t) => _CheckItem(t.id, '${t.name} (${t.rate}%)'))
                     .toList(),
                 selected: taxIds,
+                onChanged: recompute,
               ),
             ],
             if (allDiscounts.isNotEmpty) ...[
@@ -217,8 +262,11 @@ class ItemModal {
                         ))
                     .toList(),
                 selected: discountIds,
+                onChanged: recompute,
               ),
             ],
+            const SizedBox(height: 20),
+            _PriceSummary(breakdown: breakdown),
             if (allBranches.isNotEmpty) ...[
               const SizedBox(height: 20),
               _buildCheckboxGroup(
@@ -268,8 +316,148 @@ class ItemModal {
     required String label,
     required List<_CheckItem> items,
     required Set<String> selected,
+    VoidCallback? onChanged,
   }) {
-    return _CheckboxGroup(label: label, items: items, selected: selected);
+    return _CheckboxGroup(
+        label: label,
+        items: items,
+        selected: selected,
+        onChanged: onChanged);
+  }
+
+  // Hitung breakdown harga dari base price + tax & discount yang dipilih.
+  // Satu item bisa punya beberapa tax dan beberapa discount sekaligus.
+  static _Breakdown _computeBreakdown({
+    required double price,
+    required Set<String> taxIds,
+    required Set<String> discountIds,
+    required List<TaxModel> allTaxes,
+    required List<DiscountModel> allDiscounts,
+  }) {
+    // 1. Subtotal Price - harga sebelum diskon & tax
+    final double subtotalPrice = price;
+
+    // 2. Discount Amount - total potongan dari semua discount yang dipilih
+    double discountAmount = 0;
+    for (final d in allDiscounts.where((d) => discountIds.contains(d.id))) {
+      double value;
+      if (d.discountType == 'Percentage') {
+        value = subtotalPrice * d.discountValue / 100;
+        if (d.maxDiscount != null && value > d.maxDiscount!) {
+          value = d.maxDiscount!;
+        }
+      } else {
+        value = d.discountValue;
+      }
+      discountAmount += value;
+    }
+    if (discountAmount > subtotalPrice) discountAmount = subtotalPrice;
+
+    // 3. Tax Amount - total pajak dari semua tax yang dipilih (dihitung
+    //    setelah dipotong diskon)
+    final double taxable = subtotalPrice - discountAmount;
+    double taxAmount = 0;
+    for (final t in allTaxes.where((t) => taxIds.contains(t.id))) {
+      taxAmount += taxable * t.rate / 100;
+    }
+
+    // 4. Final Price = Subtotal - Discount + Tax
+    final double finalPrice = subtotalPrice - discountAmount + taxAmount;
+
+    return _Breakdown(subtotalPrice, discountAmount, taxAmount, finalPrice);
+  }
+}
+
+class _Breakdown {
+  // 1. Subtotal Price - Harga dari semua item sebelum diskon & tax
+  //    = SUM(Qty x UnitPrice)
+  final double subtotalPrice;
+
+  // 2. Discount Amount - Potongan harga
+  final double discountAmount;
+
+  // 3. Tax Amount - Pajak yang berlaku
+  final double taxAmount;
+
+  // 4. Final Price - Harga akhir yang dibayar
+  //    = Subtotal Price - Discount + Tax
+  final double finalPrice;
+
+  const _Breakdown(
+    this.subtotalPrice,
+    this.discountAmount,
+    this.taxAmount,
+    this.finalPrice,
+  );
+}
+
+class _PriceSummary extends StatelessWidget {
+  final ValueNotifier<_Breakdown> breakdown;
+  const _PriceSummary({required this.breakdown});
+
+  String _rp(double v) => 'Rp ${v.toStringAsFixed(0)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<_Breakdown>(
+      valueListenable: breakdown,
+      builder: (_, b, __) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('PRICE SUMMARY',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.06,
+                    color: Color(0xFF787774))),
+            const SizedBox(height: 6),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F6F3),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFEAEAEA)),
+              ),
+              child: Column(
+                children: [
+                  _row('Subtotal', _rp(b.subtotalPrice)),
+                  const SizedBox(height: 6),
+                  _row('Discount', '- ${_rp(b.discountAmount)}'),
+                  const SizedBox(height: 6),
+                  _row('Tax', '+ ${_rp(b.taxAmount)}'),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(height: 1, color: Color(0xFFEAEAEA)),
+                  ),
+                  _row('Final Price', _rp(b.finalPrice), bold: true),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _row(String label, String value, {bool bold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: bold ? 14 : 13,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+                color: const Color(0xFF5C5C63))),
+        Text(value,
+            style: TextStyle(
+                fontSize: bold ? 14 : 13,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                color: const Color(0xFF111111))),
+      ],
+    );
   }
 }
 
@@ -493,9 +681,13 @@ class _CheckboxGroup extends StatefulWidget {
   final String label;
   final List<_CheckItem> items;
   final Set<String> selected;
+  final VoidCallback? onChanged;
 
   const _CheckboxGroup(
-      {required this.label, required this.items, required this.selected});
+      {required this.label,
+      required this.items,
+      required this.selected,
+      this.onChanged});
 
   @override
   State<_CheckboxGroup> createState() => _CheckboxGroupState();
@@ -542,6 +734,7 @@ class _CheckboxGroupState extends State<_CheckboxGroup> {
                   widget.selected
                     ..clear()
                     ..addAll(_selected);
+                  widget.onChanged?.call();
                 },
                 child: Container(
                   padding:

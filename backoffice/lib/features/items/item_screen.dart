@@ -385,6 +385,10 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
         'Price': result['Price'],
         'ItemType': 'Product',
         if (result['CostPrice'] != null) 'CostPrice': result['CostPrice'],
+        'SubtotalPrice': result['SubtotalPrice'],
+        'DiscountAmount': result['DiscountAmount'],
+        'TaxAmount': result['TaxAmount'],
+        'FinalPrice': result['FinalPrice'],
         if (result['Description']?.isNotEmpty == true)
           'Description': result['Description'],
         if (result['CategoryID'] != null) 'CategoryID': result['CategoryID'],
@@ -438,6 +442,10 @@ class _ItemScreenState extends ConsumerState<ItemScreen>
             'ItemName': result['ItemName'],
             'Price': result['Price'],
             if (result['CostPrice'] != null) 'CostPrice': result['CostPrice'],
+            'SubtotalPrice': result['SubtotalPrice'],
+            'DiscountAmount': result['DiscountAmount'],
+            'TaxAmount': result['TaxAmount'],
+            'FinalPrice': result['FinalPrice'],
             if (result['Description']?.isNotEmpty == true)
               'Description': result['Description'],
             if (result['CategoryID'] != null)

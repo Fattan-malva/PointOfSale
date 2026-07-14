@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/backoffice_shimmer.dart';
 import '../../models/category_model.dart';
 import 'category_provider.dart';
+import 'category_modal.dart';
 
 class CategoryScreen extends ConsumerStatefulWidget {
   const CategoryScreen({super.key});
@@ -25,7 +26,6 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    // Ensure data refresh on each screen open.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(categoryProvider.notifier).refresh();
@@ -58,18 +58,18 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
           padding: const EdgeInsets.all(32),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            _buildHeader(),
+            _buildHeader(state),
             const SizedBox(height: 24),
             _buildSearch(),
             const SizedBox(height: 20),
-            _buildList(state),
+            _buildBody(state),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(CategoryState state) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,9 +88,9 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Manage your product categories',
-              style: TextStyle(
+            Text(
+              '${state.categories.length} categor${state.categories.length != 1 ? 'ies' : 'y'}',
+              style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF787774),
                 height: 1.5,
@@ -99,7 +99,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
           ],
         ),
         GestureDetector(
-          onTap: () => _showAddDialog(),
+          onTap: () => _onAddCategory(),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
@@ -145,20 +145,15 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
               controller: _searchController,
               decoration: const InputDecoration(
                 hintText: 'Search categories...',
-                hintStyle: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textDisabled,
-                ),
+                hintStyle:
+                    TextStyle(fontSize: 14, color: AppColors.textDisabled),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF111111),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
               onChanged: (v) =>
                   ref.read(categoryProvider.notifier).setSearch(v),
             ),
@@ -168,12 +163,11 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
     );
   }
 
-  Widget _buildList(CategoryState state) {
+  Widget _buildBody(CategoryState state) {
     if (state.isLoading) {
-      // Shimmer placeholders
       return Column(
         children: List.generate(
-          8,
+          10,
           (i) => const Padding(
             padding: EdgeInsets.only(bottom: 10),
             child: BackofficeShimmerRow(dense: true),
@@ -184,12 +178,9 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
 
     if (state.categories.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 40),
-          child: Text(
-            state.error ?? 'No categories found',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
-          ),
+        child: Text(
+          state.error ?? 'No categories found',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
         ),
       );
     }
@@ -219,6 +210,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 40,
@@ -300,13 +292,13 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
             const SizedBox(width: 8),
             _IconAction(
               icon: Icons.edit_rounded,
-              onTap: () => _showEditDialog(cat),
+              onTap: () => _onEditCategory(cat),
             ),
             const SizedBox(width: 8),
             _IconAction(
               icon: Icons.delete_outline_rounded,
               iconColor: AppColors.pastelRedText,
-              onTap: () => _confirmDelete(cat.id, cat.name),
+              onTap: () => _onDeleteCategory(cat),
             ),
           ],
         ),
@@ -325,145 +317,60 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen>
     return palettes[hash % palettes.length];
   }
 
-  void _showAddDialog() {
-    final nameCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final loading = ValueNotifier(false);
+  Future<void> _onAddCategory() async {
+    final result = await CategoryModal.create(context);
+    if (result == null || !context.mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (ctx) => _DialogFrame(
-        title: 'Add Category',
-        children: [
-          _DialogField(
-              controller: nameCtrl,
-              label: 'Category Name',
-              hint: 'e.g. Food & Beverage'),
-          const SizedBox(height: 16),
-          _DialogField(
-              controller: descCtrl,
-              label: 'Description',
-              hint: 'Optional description'),
-        ],
-        actions: (close) => [
-          _CancelBtn(close: close),
-          _ActionBtn(
-            label: 'Save',
-            loading: loading,
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
-              loading.value = true;
-              final err =
-                  await ref.read(categoryProvider.notifier).createCategory({
-                'CategoryName': nameCtrl.text.trim(),
-                'Description': descCtrl.text.trim(),
-              });
-              loading.value = false;
-              if (err == null) {
-                close();
-                _snack('Category created', ok: true);
-              } else {
-                _snack(err, ok: false);
-              }
-            },
-          ),
-        ],
-      ),
+    final success =
+        await ref.read(categoryProvider.notifier).createCategory(result);
+    if (!context.mounted) return;
+    final err = ref.read(categoryProvider).error;
+    _snack(
+      success ? 'Category created' : (err ?? 'Failed to create category'),
+      ok: success,
     );
   }
 
-  void _showEditDialog(dynamic cat) {
-    final nameCtrl = TextEditingController(text: cat.name);
-    final descCtrl = TextEditingController(text: cat.description ?? '');
-    final loading = ValueNotifier(false);
+  Future<void> _onEditCategory(CategoryModel cat) async {
+    final result = await CategoryModal.edit(context, cat);
+    if (result == null || !context.mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (ctx) => _DialogFrame(
-        title: 'Edit Category',
-        children: [
-          _DialogField(controller: nameCtrl, label: 'Category Name'),
-          const SizedBox(height: 16),
-          _DialogField(controller: descCtrl, label: 'Description'),
-        ],
-        actions: (close) => [
-          _CancelBtn(close: close),
-          _ActionBtn(
-            label: 'Update',
-            loading: loading,
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
-              loading.value = true;
-              final err = await ref
-                  .read(categoryProvider.notifier)
-                  .updateCategory(cat.id, {
-                'CategoryName': nameCtrl.text.trim(),
-                'Description': descCtrl.text.trim(),
-              });
-              loading.value = false;
-              if (err == null) {
-                close();
-                _snack('Category updated', ok: true);
-              } else {
-                _snack(err, ok: false);
-              }
-            },
-          ),
-        ],
-      ),
+    final success = await ref
+        .read(categoryProvider.notifier)
+        .updateCategory(cat.id, result);
+    if (!context.mounted) return;
+    final err = ref.read(categoryProvider).error;
+    _snack(
+      success ? 'Category updated' : (err ?? 'Failed to update category'),
+      ok: success,
     );
   }
 
-  void _confirmDelete(String id, String name) {
-    final loading = ValueNotifier(false);
+  Future<void> _onDeleteCategory(CategoryModel cat) async {
+    final confirmed = await CategoryModal.confirmDelete(context, cat.name);
+    if (!confirmed || !context.mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (ctx) => _DialogFrame(
-        title: 'Delete Category',
-        children: [
-          Text(
-            'Are you sure you want to delete "$name"?',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF5C5C63),
-              height: 1.5,
-            ),
-          ),
-        ],
-        actions: (close) => [
-          _CancelBtn(close: close),
-          _ActionBtn(
-            label: 'Delete',
-            destructive: true,
-            loading: loading,
-            onPressed: () async {
-              loading.value = true;
-              final err =
-                  await ref.read(categoryProvider.notifier).deleteCategory(id);
-              loading.value = false;
-              if (err == null) {
-                close();
-                _snack('Category deleted', ok: true);
-              } else {
-                _snack(err, ok: false);
-              }
-            },
-          ),
-        ],
-      ),
+    final success =
+        await ref.read(categoryProvider.notifier).deleteCategory(cat.id);
+    if (!context.mounted) return;
+    final err = ref.read(categoryProvider).error;
+    _snack(
+      success ? 'Category deleted' : (err ?? 'Failed to delete category'),
+      ok: success,
     );
   }
 
   void _snack(String message, {required bool ok}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
-            )),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: ok ? AppColors.pastelGreenText : AppColors.pastelRedText,
+          ),
+        ),
         backgroundColor: ok ? AppColors.pastelGreen : AppColors.pastelRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -483,8 +390,11 @@ class _AnimatedEntry extends StatelessWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedEntry(
-      {required this.controller, required this.index, required this.child});
+  const _AnimatedEntry({
+    required this.controller,
+    required this.index,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -495,13 +405,17 @@ class _AnimatedEntry extends StatelessWidget {
     return FadeTransition(
       opacity: Tween<double>(begin: 0, end: 1).animate(
         CurvedAnimation(
-            parent: controller, curve: Interval(start, end, curve: curve)),
+          parent: controller,
+          curve: Interval(start, end, curve: curve),
+        ),
       ),
       child: SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
             .animate(
           CurvedAnimation(
-              parent: controller, curve: Interval(start, end, curve: curve)),
+            parent: controller,
+            curve: Interval(start, end, curve: curve),
+          ),
         ),
         child: child,
       ),
@@ -531,157 +445,6 @@ class _IconAction extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(icon, size: 16, color: iconColor),
-      ),
-    );
-  }
-}
-
-class _DialogFrame extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  final List<Widget> Function(VoidCallback close) actions;
-
-  const _DialogFrame({
-    required this.title,
-    required this.children,
-    required this.actions,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: Color(0xFFEAEAEA)),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.02,
-          color: Color(0xFF111111),
-        ),
-      ),
-      content: SizedBox(
-        width: 400,
-        child: Column(mainAxisSize: MainAxisSize.min, children: children),
-      ),
-      actions: [
-        ...actions(() => Navigator.pop(context)),
-      ],
-    );
-  }
-}
-
-class _DialogField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String? hint;
-
-  const _DialogField(
-      {required this.controller, required this.label, this.hint});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.03,
-            color: Color(0xFF787774),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFEAEAEA)),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textDisabled,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CancelBtn extends StatelessWidget {
-  final VoidCallback close;
-  const _CancelBtn({required this.close});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: close,
-      style: TextButton.styleFrom(
-        foregroundColor: const Color(0xFF787774),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      ),
-      child: const Text('Cancel', style: TextStyle(fontSize: 14)),
-    );
-  }
-}
-
-class _ActionBtn extends StatelessWidget {
-  final String label;
-  final bool destructive;
-  final ValueNotifier<bool> loading;
-  final VoidCallback onPressed;
-
-  const _ActionBtn({
-    required this.label,
-    this.destructive = false,
-    required this.loading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: loading,
-      builder: (_, isLoading, __) => FilledButton(
-        onPressed: isLoading ? null : onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor:
-              destructive ? const Color(0xFF9F2F2D) : const Color(0xFF111111),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFEAEAEA),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
-              )
-            : Text(label,
-                style:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       ),
     );
   }

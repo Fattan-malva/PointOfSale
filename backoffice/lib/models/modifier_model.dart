@@ -111,6 +111,7 @@ class PackageDetailModel {
   final String itemId;
   final String? itemName;
   final int qty;
+  final double unitPrice;
 
   PackageDetailModel({
     required this.id,
@@ -118,6 +119,7 @@ class PackageDetailModel {
     required this.itemId,
     this.itemName,
     required this.qty,
+    required this.unitPrice,
   });
 
   factory PackageDetailModel.fromJson(Map<String, dynamic> json) {
@@ -127,6 +129,7 @@ class PackageDetailModel {
       itemId: (json['ItemID'] as String?) ?? (json['itemId'] as String?) ?? '',
       itemName: json['ItemName'] as String? ?? json['itemName'] as String?,
       qty: (json['Qty'] as num?)?.toInt() ?? (json['qty'] as num?)?.toInt() ?? 1,
+      unitPrice: (json['UnitPrice'] as num?)?.toDouble() ?? (json['unitPrice'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -134,6 +137,7 @@ class PackageDetailModel {
     return {
       'ItemID': itemId,
       'Qty': qty,
+      'UnitPrice': unitPrice,
     };
   }
 }

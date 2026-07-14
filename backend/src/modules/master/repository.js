@@ -245,7 +245,7 @@ class MasterRepository {
     return db('PackageDetail')
       .join('Item', 'PackageDetail.ItemID', 'Item.ItemID')
       .where('PackageDetail.PackageItemID', packageItemId)
-      .select('PackageDetail.*', 'Item.ItemName', 'Item.Price')
+      .select('PackageDetail.*', 'Item.ItemName', 'PackageDetail.UnitPrice')
       .orderBy('PackageDetail.PackageDetailID');
   }
 
@@ -276,10 +276,9 @@ class MasterRepository {
     // (safety: packageItemId should be valid because endpoint requires PackageItemID)
     const [{ price: computedPrice }] = await db('Item as package')
       .join('PackageDetail', 'PackageDetail.PackageItemID', 'package.ItemID')
-      .join('Item as child', 'PackageDetail.ItemID', 'child.ItemID')
       .where('package.ItemID', packageItemId)
       .groupBy('package.ItemID')
-      .select(db.raw('COALESCE(SUM(PackageDetail.Qty * child.Price), 0) as price'));
+      .select(db.raw('COALESCE(SUM(PackageDetail.Qty * PackageDetail.UnitPrice), 0) as price'));
 
     const finalPrice = computedPrice ?? 0;
 
